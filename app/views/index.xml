@@ -1,0 +1,19 @@
+<Alloy>
+	<Window class="container">
+		<Label id="lblTitle"></Label>
+		<Label id="lblPrompt"></Label>
+		<Label id="lblTranscript"></Label>
+		<ImageView id="image"></ImageView>
+		<ScrollView id="participantForm" scrollType="vertical"></ScrollView>
+		<WebView id="htmlPreamble"></WebView>
+		<View id="consent">
+			<WebView id="htmlConsent"></WebView>
+			<Label id="lblSignature"></Label>
+			<TextField id="txtSignature"></TextField>
+		</View>
+		<ActivityIndicator id="aiRecording" message="Recording..."></ActivityIndicator>
+		<Button id="btnNext" onClick="onNext">Next</Button>
+		<Label id="lblUpload"></Label>
+		<ProgressBar id="pbOverall" message="Overall Progress"></ProgressBar>
+	</Window>
+</Alloy>
