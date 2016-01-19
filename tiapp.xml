@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ti:app xmlns:ti="http://ti.appcelerator.org">
-    <id>nzilbb.ElicitSpeech</id>
+    <id>nzilbb.elicitspeech</id>
     <name>ElicitSpeech</name>
-    <version>1.1</version>
+    <version>1.2</version>
     <publisher>Robert Fromont</publisher>
     <url>http://www.nzilbb.canterbury.ac.nz</url>
     <description>Elicits speech, which is recorded and uploaded to a server for analysis.</description>
@@ -62,7 +62,7 @@
         <target device="iphone">false</target>
         <target device="mobileweb">false</target>
     </deployment-targets>
-    <sdk-version>3.5.1.GA</sdk-version>
+    <sdk-version>5.1.2.GA</sdk-version>
     <plugins>
         <plugin version="1.0">ti.alloy</plugin>
     </plugins>

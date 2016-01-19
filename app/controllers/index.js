@@ -1,5 +1,7 @@
 var settings = null;
 var taskName = "es";
+//var startUrl = "http://192.168.1.140:8080/labbcat/elicit/steps?content-type=application/json&task="+taskName;
+var startUrl = "https://labbcat.canterbury.ac.nz/test/elicit/steps?content-type=application/json&task="+taskName;
 var steps = [
 	{
 		prompt: "<p>Unfortunately, the task steps are not currently accessible. Please check you are connected to the internet.</p>",
@@ -209,6 +211,11 @@ function doNextUpload() {
 
 function onNext(e)
 {
+	if ($.btnNext.title == "Start Again") { // TODO i18n
+		$.btnNext.title = noTags(settings.resources.next);
+		startSession();
+		return;
+	}
 	Ti.API.info('Next...');
 	if (!signature) {
 		if (settings.consent && consentShown) {
@@ -226,6 +233,9 @@ function onNext(e)
 	} else if (!participantId) { // don't have a participant ID yet
 		newParticipant();
 	} else {
+		// hide the button to stop double-clicks
+		$.btnNext.hide();
+	
 		finishLastStep(); // which will automatically start the next step
 	}
 }
@@ -242,7 +252,16 @@ function startSession() {
     consentSent = false;
     participantFormControls = {};
     currentStep = -1;
+    
+    // resent UI components
     $.txtSignature.value = "";
+	$.pbOverall.max = steps.length;
+	$.pbOverall.value = 0;
+	$.pbOverall.message = noTags(settings.resources.overallProgess);
+	$.lblUpload.text = "";
+	$.lblTitle.text = "";
+	$.lblPrompt.text = "";
+	$.lblTranscript.text = "";	
     
 	// start user interface...
 	showPreamble();
@@ -251,6 +270,7 @@ function startSession() {
 function showPreamble() {
 	if (settings.preamble) {
 		$.htmlPreamble.html = settings.preamble;
+		$.htmlPreamble.show();
 		$.consent.hide();
 	} else {
 		showConsent();
@@ -561,7 +581,6 @@ function startNextStep() {
 				Ti.API.info('Waiting for '+steps[currentStep].countdown_seconds);
 				clearPrompts();
 				Ti.API.log("countdown - hiding next button");
-				$.btnNext.hide();
 				startTimer(steps[currentStep].countdown_seconds, showCurrentPhrase, true);
 			} else {
 				showCurrentPhrase();
@@ -666,8 +685,10 @@ function showCurrentPhrase() {
     } 	
     if (currentStep < steps.length - 1)
     { // show next button only if there's a next step 
-    	Ti.API.log("showing next button");
-    	$.btnNext.show();
+    	Ti.API.log("showing next button in a sec...");
+		setTimeout(function() { Ti.API.log("showing next button"); $.btnNext.show(); }, 1000); 
+	
+    	//$.btnNext.show();
     }
 }
 function clearPrompts() {
@@ -680,10 +701,10 @@ function finished()
 {
 	$.lblPrompt.text += "\n\n"+noTags(settings.resources.yourParticipantIdIs)+"\n"+participantId;	    	
     Ti.API.log("finished - hiding next button");
-	$.btnNext.hide();
     $.aiRecording.hide();
     
-    // TODO show upload progress
+	$.btnNext.title = "Start Again"; // TODO i18n
+    $.btnNext.show();
     
     // TODO open consent PDF 	
 }
@@ -782,9 +803,6 @@ xhr.onload = function(e) {
     	var data = JSON.parse(this.responseText);
     	settings = data.model;
 		steps = data.model.steps; 
-		$.pbOverall.max = steps.length;
-		$.pbOverall.value = 0;
-		$.pbOverall.message = noTags(settings.resources.overallProgess);
 		$.pbOverall.show();
 		$.btnNext.title = noTags(settings.resources.next);
 		$.lblSignature.text = noTags(settings.resources.pleaseEnterYourNameHere);
@@ -798,7 +816,6 @@ xhr.onerror = function(e) {
     	alert('There was an error retrieving the remote data. Try again.');
     };
 Ti.API.info('getting prompts...');
-xhr.open("GET", "http://192.168.1.140:8080/labbcat/elicit/steps?content-type=application/json&task="+taskName);
-//xhr.open("GET", "https://labbcat.canterbury.ac.nz/test/elicit/steps?content-type=application/json&task="+taskName);
+xhr.open("GET", startUrl);
 xhr.send();
 
