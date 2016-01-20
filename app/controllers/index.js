@@ -1,5 +1,5 @@
 var settings = null;
-var taskName = "es";
+var taskName = "test"; // TODO test outcome when taskName doesn't exist on server
 //var startUrl = "http://192.168.1.140:8080/labbcat/elicit/steps?content-type=application/json&task="+taskName;
 var startUrl = "https://labbcat.canterbury.ac.nz/test/elicit/steps?content-type=application/json&task="+taskName;
 var steps = [
@@ -135,49 +135,19 @@ function uploadsProgress() {
 		}
 	}
 }
-// progress of current upload
-function uploadProgress(evt) {
-	//	$.pbUpload.value = e.progress ;
-	var transcriptName = evt.source.transcriptName;
-	uploads[transcriptName].percentComplete = evt.progress;
-	uploads[transcriptName].status = "uploading...";
-	uploadsProgress();
-}
-// current upload finished
-function uploadComplete(evt) {
-	var transcriptName = evt.source.transcriptName;
-	uploads[transcriptName].percentComplete = 100;
-	uploads[transcriptName].status = "complete";
-	uploadsProgress();
-	// remove it from the queue
-	uploadQueue.pop();
-	// start next one, if any
-	doNextUpload();
-}
-// error with current upload
-function uploadError(evt) {
-	Ti.API.info('UPLOAD ERROR ' + evt.error);
-	Ti.API.info(this.responseText);
-	var transcriptName = evt.source.transcriptName;
-	uploads[transcriptName].status = "failed";
-	uploadsProgress();
-	// try again
-	doNextUpload();
-}
 // create an upload request for the audio file
 function uploadFile(file) {
 	Ti.API.info('uploadFile('+file.name+')');
-	var xhr = Titanium.Network.createHTTPClient();
-	xhr.onload = uploadComplete;
-	xhr.onerror = uploadError;	
-	xhr.onsendstream = uploadProgress;
 	//xhr.setRequestHeader('Content-Type', 'multipart/form-data');
 	var sName = series + "-" + (++recIndex);
 	Ti.API.info('name '+sName+')');
-	xhr.transcriptName = sName + ".txt";
-	uploads[xhr.transcriptName] = { percentComplete: 0, status: "waiting..."};
-	var fTranscript = Ti.Filesystem.getFile(Ti.Filesystem.getApplicationDataDirectory(), xhr.transcriptName);
+	var transcriptName = sName + ".txt";
+	uploads[transcriptName] = { percentComplete: 0, status: "waiting..."};
+	var fTranscript = Ti.Filesystem.getFile(Ti.Filesystem.getApplicationDataDirectory(), transcriptName);
 	fTranscript.write(participantId + ": {" + steps[currentStep].prompt + "} " + steps[currentStep].transcript);
+	// move recording so it won't be cleaned up before we've finished with it
+	var fAudio = Ti.Filesystem.getFile(Ti.Filesystem.getApplicationDataDirectory(), sName + ".wav");
+	file.move(fAudio.nativePath);
 	var formData = {
 		"content-type" : "application/json",
 		num_transcripts : 1,
@@ -187,25 +157,64 @@ function uploadFile(file) {
 		corpus : settings.corpus,
 		family_name : series,
 		uploadfile1_0 : fTranscript,
-	    uploadmedia1: file,
-	    doc : (consentPdf && !consentSent)?consentPdf:null
+	    uploadmedia1: fAudio
 	  };
+	if (consentPdf && !consentSent) {
+		formData.doc = consentPdf;
+	}
 	consentSent = true;
-	enqueueUpload(xhr, formData);
+	enqueueUpload(transcriptName, formData);
 	uploadsProgress();
 }
-function enqueueUpload(xhr, fd) {
-	var upload = { request: xhr, form: fd };
+function enqueueUpload(transcriptName, fd) {
+	var upload = { transcriptName: transcriptName, form: fd };
 	uploadQueue.unshift(upload);
 	if (uploadQueue.length == 1) {
 		doNextUpload();
 	}
 }
 function doNextUpload() {
+	Ti.API.log("doNextUpload " + uploadQueue.length);
 	if (uploadQueue.length > 0) {
+		Ti.API.log("upload " + uploadQueue[uploadQueue.length-1]);
 		var upload = uploadQueue[uploadQueue.length-1];
+		Ti.API.log("post " + settings.uploadUrl);
+	    upload.request = Titanium.Network.createHTTPClient({
+	    	onload: function(e) {
+	    		Ti.API.log("onload");
+				var transcriptName = e.source.transcriptName;
+				uploads[transcriptName].percentComplete = 100;
+				uploads[transcriptName].status = "complete";
+				uploadsProgress();
+				// remove it from the queue
+				uploadQueue.pop();
+				// start next one, if any
+				//doNextUpload();
+				setTimeout(doNextUpload, 50);	    		
+	    	},
+	    	onerror : function(e) {
+				Ti.API.log('UPLOAD ERROR ' + e.error);
+				Ti.API.log(this.responseText);
+				var transcriptName = e.source.transcriptName;
+				uploads[transcriptName].status = "failed";
+				uploadsProgress();
+				// try again
+				//doNextUpload();
+				setTimeout(doNextUpload, 50);
+		    },
+		    onsendstream: function(e) {
+				//	$.pbUpload.value = e.progress ;
+				var transcriptName = e.source.transcriptName;
+				uploads[transcriptName].percentComplete = e.progress;
+				uploads[transcriptName].status = "uploading...";
+				uploadsProgress();
+		    }
+	    });
+	    upload.request.transcriptName = upload.transcriptName;
 		upload.request.open('POST', settings.uploadUrl);
 		upload.request.send(upload.form);
+			
+		Ti.API.log("finished doNextUpload");
 	}
 }
 
