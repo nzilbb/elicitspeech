@@ -73,8 +73,7 @@
 
 "#aiRecording": {
 	height: "5%",
-	top: "80%",
-	left: "15%",
+	top: "85%",
 	font : { fontSize: 16 }
 },
 

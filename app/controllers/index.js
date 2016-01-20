@@ -139,7 +139,7 @@ function uploadsProgress() {
 function uploadFile(file) {
 	Ti.API.info('uploadFile('+file.name+')');
 	//xhr.setRequestHeader('Content-Type', 'multipart/form-data');
-	var sName = series + "-" + (++recIndex);
+	var sName = series + "-" + (++recIndex); // TODO format recIndex with leading zeroes
 	Ti.API.info('name '+sName+')');
 	var transcriptName = sName + ".txt";
 	uploads[transcriptName] = { percentComplete: 0, status: "waiting..."};
