@@ -1,5 +1,6 @@
 <Alloy>
 	<Window class="container">
+		<ScrollView id="scrollview" scrollType="vertical">
 		<Label id="lblTitle"></Label>
 		<Label id="lblPrompt"></Label>
 		<Label id="lblTranscript"></Label>
@@ -15,5 +16,6 @@
 		<Button id="btnNext" onClick="onNext">Next</Button>
 		<Label id="lblUpload"></Label>
 		<ProgressBar id="pbOverall" message="Overall Progress"></ProgressBar>
+		</ScrollView>
 	</Window>
 </Alloy>
