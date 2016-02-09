@@ -9,6 +9,8 @@ var steps = [
 	}
 ];
 
+var uploader = require("nzilbb.uploader");
+
 // series-specific variables
 var series = null;
 var participantId = null;
@@ -112,10 +114,8 @@ function startSeriesUpload(sessionName) {
 	// load participant ID
 }
 
-var uploads = {};
-var uploadQueue = [];
 // progress of all uploads
-function uploadsProgress() {
+function uploadsProgress(uploads, message) {
 	// if we're actually displaying progress
 	if (currentStep >= steps.length - 1) {
 		var transcriptCount = 0;
@@ -130,11 +130,12 @@ function uploadsProgress() {
 			if ($.pbOverall.value == $.pbOverall.max) {
 				$.lblUpload.text = noTags(settings.resources.uploadFinished);
 			} else {
-				$.lblUpload.text = noTags(settings.resources.uploadingPleaseWait);
+				$.lblUpload.text = message || noTags(settings.resources.uploadingPleaseWait);
 			}
 		}
 	}
 }
+
 // create an upload request for the audio file
 function uploadFile(file) {
 	Ti.API.info('uploadFile('+file.name+')');
@@ -142,7 +143,6 @@ function uploadFile(file) {
 	var sName = series + "-" + (++recIndex); // TODO format recIndex with leading zeroes
 	Ti.API.info('name '+sName+')');
 	var transcriptName = sName + ".txt";
-	uploads[transcriptName] = { percentComplete: 0, status: "waiting..."};
 	var fTranscript = Ti.Filesystem.getFile(Ti.Filesystem.getApplicationDataDirectory(), transcriptName);
 	fTranscript.write(participantId + ": {" + steps[currentStep].prompt + "} " + steps[currentStep].transcript);
 	// move recording so it won't be cleaned up before we've finished with it
@@ -163,59 +163,8 @@ function uploadFile(file) {
 		formData.doc = consentPdf;
 	}
 	consentSent = true;
-	enqueueUpload(transcriptName, formData);
-	uploadsProgress();
-}
-function enqueueUpload(transcriptName, fd) {
-	var upload = { transcriptName: transcriptName, form: fd };
-	uploadQueue.unshift(upload);
-	if (uploadQueue.length == 1) {
-		doNextUpload();
-	}
-}
-function doNextUpload() {
-	Ti.API.log("doNextUpload " + uploadQueue.length);
-	if (uploadQueue.length > 0) {
-		Ti.API.log("upload " + uploadQueue[uploadQueue.length-1]);
-		var upload = uploadQueue[uploadQueue.length-1];
-		Ti.API.log("post " + settings.uploadUrl);
-	    upload.request = Titanium.Network.createHTTPClient({
-	    	onload: function(e) {
-	    		Ti.API.log("onload");
-				var transcriptName = e.source.transcriptName;
-				uploads[transcriptName].percentComplete = 100;
-				uploads[transcriptName].status = "complete";
-				uploadsProgress();
-				// remove it from the queue
-				uploadQueue.pop();
-				// start next one, if any
-				//doNextUpload();
-				setTimeout(doNextUpload, 50);	    		
-	    	},
-	    	onerror : function(e) {
-				Ti.API.log('UPLOAD ERROR ' + e.error);
-				Ti.API.log(this.responseText);
-				var transcriptName = e.source.transcriptName;
-				uploads[transcriptName].status = "failed";
-				uploadsProgress();
-				// try again
-				//doNextUpload();
-				setTimeout(doNextUpload, 50);
-		    },
-		    onsendstream: function(e) {
-				//	$.pbUpload.value = e.progress ;
-				var transcriptName = e.source.transcriptName;
-				uploads[transcriptName].percentComplete = e.progress;
-				uploads[transcriptName].status = "uploading...";
-				uploadsProgress();
-		    }
-	    });
-	    upload.request.transcriptName = upload.transcriptName;
-		upload.request.open('POST', settings.uploadUrl);
-		upload.request.send(upload.form);
-			
-		Ti.API.log("finished doNextUpload");
-	}
+	uploader.enqueueUpload(transcriptName, formData);
+	//uploadsProgress();
 }
 
 function onNext(e)
@@ -816,6 +765,7 @@ xhr.onload = function(e) {
 		$.btnNext.title = noTags(settings.resources.next);
 		$.lblSignature.text = noTags(settings.resources.pleaseEnterYourNameHere);
 		$.aiRecording.message = noTags(settings.resources.recording);
+		uploader.initialise(settings.uploadUrl, uploadsProgress);
 		startSession();
 };
 xhr.onerror = function(e) {
