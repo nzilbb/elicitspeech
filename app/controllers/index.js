@@ -10,14 +10,15 @@ var steps = [
 ];
 
 var uploader = require("nzilbb.uploader");
+var indexLength = 2;
 
 // series-specific variables
 var series = null;
-var participantId = null;
+var participantAttributes = null;
 var recIndex = 0;
 var consentShown = false;
 var signature = null;
-var consentPdf = null;
+var consentDoc = null;
 var consentSent = false;
 var participantFormControls = {};
 var currentStep = -1;
@@ -64,60 +65,58 @@ function generateConsentPdf(sig) {
 	var client = Ti.Network.createHTTPClient();
 	client.onload = function(e) {
 				Ti.API.log("Got PDF");
-				consentPdf = this.file;
-				// TODO getNewParticipantId() instead of ...
+				consentDoc = this.file;
 				// create participant form
 				createParticipantForm();				
 		};
 	client.onerror = function(e) {
-				Ti.API.debug(e.error);
-				alert('Error getting signed consent as PDF: ' + e.error);
+				Ti.API.debug("Could no get consent PDF: " + e.error);
+				// fall back to an HTML file
+				generateConsentHtml(sig);
+				// create participant form
+				createParticipantForm();				
 		};
 	// Prepare the connection.
 	client.open("GET", url);
-	client.file = Ti.Filesystem.getFile(Ti.Filesystem.getApplicationDataDirectory(), taskName + "-consent.pdf");
+	client.file = Ti.Filesystem.getFile(Ti.Filesystem.getApplicationDataDirectory(), series, taskName + "-consent.pdf");
 	// Send the request.
 	client.send();				
 
 }
-function getNewParticipantId(attributes) {
+function generateConsentHtml(sig) {
+	signature = sig;
+	var htmlConsentFile = Ti.Filesystem.getFile(Ti.Filesystem.getApplicationDataDirectory(), series, taskName + "-consent.html");
+	htmlConsentFile.write("<html><body>\n"+settings.consent + "\n\n<div><u><i><big>"+sig+"</big></i></u></div>\n<body></html>");
+	consentDoc = htmlConsentFile;
+}
+function getNewParticipantId(participantAttributes) {
 	var xhr = Titanium.Network.createHTTPClient();
 	xhr.onload = function(e) {
-		$.index.open();
 	   	var data = JSON.parse(this.responseText);
-	   	participantId = data.model.name;
-	   	var now = new Date();
-    	series = participantId + "-"+now.toISOString().substring(0,16).replace(/[-:]/g,"").replace("T","-");
-    	Ti.API.info("series "+series);
-		// TODO start uploading files instead of ... 
+	   	participantAttributes.id = data.model.name;
+	   	
+    	Ti.API.info("participant ID "+participantAttributes.id);
+		// save the attributes to a file
+		var participantFile = Ti.Filesystem.getFile(Ti.Filesystem.getApplicationDataDirectory(), series, "participant.json");
+		participantFile.write(JSON.stringify(participantAttributes));
 		startNextStep();
 	};
 	xhr.onerror = function(e) {
-	   	Ti.API.debug("STATUS: " + this.status);
-	   	Ti.API.debug("TEXT:   " + this.responseText);
 	   	Ti.API.debug("ERROR:  " + e.error);
-	   	alert('There was an error generating a participant ID. Try again.');
-	   	getNewParticipantId(attributes);
+	   	// could not get ID, continue anyway...
+		startNextStep();
 	};
 	Ti.API.info('getting new participant ID...');
 	xhr.open("POST", settings.newParticipantUrl);
-	xhr.send(attributes);
-}
-
-function startSeriesUpload(sessionName) {
-	// session directory
-	
-	// load attributes.json
-	
-	// if participantId unset create new participant ID 
-	
-	// load participant ID
+	xhr.send(participantAttributes);
 }
 
 // progress of all uploads
 function uploadsProgress(uploads, message) {
 	// if we're actually displaying progress
-	if (currentStep >= steps.length - 1) {
+	if (currentStep >= steps.length - 1
+		// or we're looking at the preamble
+		|| $.htmlPreamble.visible) {
 		var transcriptCount = 0;
 		var percentComplete = 0;
 		for (transcriptName in uploads) {
@@ -127,10 +126,12 @@ function uploadsProgress(uploads, message) {
 		if (transcriptCount > 0) {
 			$.pbOverall.max = 100;
 			$.pbOverall.value = percentComplete / transcriptCount;
-			if ($.pbOverall.value == $.pbOverall.max) {
-				$.lblUpload.text = noTags(settings.resources.uploadFinished);
-			} else {
-				$.lblUpload.text = message || noTags(settings.resources.uploadingPleaseWait);
+			if (!$.htmlPreamble.visible) { // display message only if we've just finished a task
+				if ($.pbOverall.value == $.pbOverall.max) {
+					$.lblUpload.text = noTags(settings.resources.uploadFinished);
+				} else {
+					$.lblUpload.text = message || noTags(settings.resources.uploadingPleaseWait);
+				}
 			}
 		}
 	}
@@ -140,13 +141,14 @@ function uploadsProgress(uploads, message) {
 function uploadFile(file) {
 	Ti.API.info('uploadFile('+file.name+')');
 	//xhr.setRequestHeader('Content-Type', 'multipart/form-data');
-	var sName = series + "-" + (++recIndex); // TODO format recIndex with leading zeroes
+	var sName = series + "-" + zeropad(++recIndex, indexLength); // TODO format recIndex with leading zeroes
 	Ti.API.info('name '+sName+')');
 	var transcriptName = sName + ".txt";
-	var fTranscript = Ti.Filesystem.getFile(Ti.Filesystem.getApplicationDataDirectory(), transcriptName);
-	fTranscript.write(participantId + ": {" + steps[currentStep].prompt + "} " + steps[currentStep].transcript);
+	var fTranscript = Ti.Filesystem.getFile(Ti.Filesystem.getApplicationDataDirectory(), series, transcriptName);
+	//fTranscript.write(participantId + ": {" + steps[currentStep].prompt + "} " + steps[currentStep].transcript); TODO implement deferred prefixing of participantId
+	fTranscript.write("{" + steps[currentStep].prompt + "} " + steps[currentStep].transcript);
 	// move recording so it won't be cleaned up before we've finished with it
-	var fAudio = Ti.Filesystem.getFile(Ti.Filesystem.getApplicationDataDirectory(), sName + ".wav");
+	var fAudio = Ti.Filesystem.getFile(Ti.Filesystem.getApplicationDataDirectory(), series, sName + ".wav");
 	file.move(fAudio.nativePath);
 	var formData = {
 		"content-type" : "application/json",
@@ -163,7 +165,7 @@ function uploadFile(file) {
 		formData.doc = consentPdf;
 	}
 	consentSent = true;
-	uploader.enqueueUpload(transcriptName, formData);
+	uploader.prod();
 	//uploadsProgress();
 }
 
@@ -188,7 +190,7 @@ function onNext(e)
 		} else {
 			showConsent(); 
 		}
-	} else if (!participantId) { // don't have a participant ID yet
+	} else if (!participantAttributes) { // don't have a participant ID yet
 		newParticipant();
 	} else {
 		// hide the button to stop double-clicks
@@ -201,8 +203,13 @@ function onNext(e)
 // starting point for an elicitation session
 function startSession() {
 	// ensure any previous participants are forgotten
-	series = null;
-	participantId = null;
+	var now = new Date();
+    series = now.toISOString().substring(0,16).replace(/[-:]/g,"").replace("T","-");
+    // create a directory named after the series - this will be where all series-related files are kept until they're uploaded
+    Ti.Filesystem.getFile(Ti.Filesystem.getApplicationDataDirectory(), series).createDirectory();
+    Ti.API.log(Ti.Filesystem.getApplicationDataDirectory());
+    Ti.API.log(series);
+	participantAttributes = null;
     recIndex = 0;
     consentShown = false;
     signature = null;
@@ -210,17 +217,18 @@ function startSession() {
     consentSent = false;
     participantFormControls = {};
     currentStep = -1;
-    
+    Ti.API.info("startSession");
     // resent UI components
     $.txtSignature.value = "";
 	$.pbOverall.max = steps.length;
 	$.pbOverall.value = 0;
-	$.pbOverall.message = noTags(settings.resources.overallProgess);
+	if (settings) $.pbOverall.message = noTags(settings.resources.overallProgess);
 	$.lblUpload.text = "";
 	$.lblTitle.text = "";
 	$.lblPrompt.text = "";
 	$.lblTranscript.text = "";	
     
+    Ti.API.info("show preamble");
 	// start user interface...
 	showPreamble();
 }
@@ -475,7 +483,7 @@ function createParticipantForm()
 function newParticipant()
 {
 	Ti.API.info("newParticipant " + $.participantForm.visible);
-	var attributes = {};
+	participantAttributes = {};
 	if ($.participantForm.visible)
 	{ // validate form
 		Ti.API.info("validating...");
@@ -510,7 +518,7 @@ function newParticipant()
 					value = parseInt(value);
 				}
 			}
-			attributes[field.attribute] = value;
+			participantAttributes[field.attribute] = value;
 		} // next field
 		$.participantForm.hide();	
 		$.participantForm.visible = false;
@@ -518,12 +526,14 @@ function newParticipant()
 	
 	if (!$.participantForm.visible)
 	{
-	    attributes["newSpeakerName"] = taskName+"-{0}";
-		attributes["content-type"] = "application/json";
+	    participantAttributes["newSpeakerName"] = taskName+"-{0}";
+		participantAttributes["content-type"] = "application/json";
 
-		// TODO defer creation of participant
-		getNewParticipantId(attributes); 
-		//startNextStep();
+		// save the attributes to a file
+		var participantFile = Ti.Filesystem.getFile(Ti.Filesystem.getApplicationDataDirectory(), series, "participant.json");
+		participantFile.write(JSON.stringify(participantAttributes));
+
+		getNewParticipantId(participantAttributes);
 	}
 }
 
@@ -657,7 +667,9 @@ function clearPrompts() {
 
 function finished()
 {
-	$.lblPrompt.text += "\n\n"+noTags(settings.resources.yourParticipantIdIs)+"\n"+participantId;	    	
+	if (participantAttributes.id) {
+		$.lblPrompt.text += "\n\n"+noTags(settings.resources.yourParticipantIdIs)+"\n"+participantAttributes.id;
+	}	    	
     Ti.API.log("finished - hiding next button");
     $.aiRecording.hide();
     
@@ -754,27 +766,65 @@ function noTags(html) {
 	return html.replace(/<[^>]+>/g,"").trim();
 }
 
-// download steps
-var xhr = Titanium.Network.createHTTPClient();
-xhr.onload = function(e) {
-		$.index.open();
-    	var data = JSON.parse(this.responseText);
-    	settings = data.model;
-		steps = data.model.steps; 
+function zeropad(num, size) {
+	var s = "000000" + num;
+	return s.substr(s.length - size);
+}
+
+function loadSettings() {
+		Ti.API.info("loadSettings");
+
+	var settingsFile = Ti.Filesystem.getFile(Ti.Filesystem.getApplicationDataDirectory(), "settings.json");
+	var blob = settingsFile.read();
+	if (blob != null) {
+		settings = JSON.parse(blob.text);
+		steps = settings.steps;
+		var numRecordings = 0;
+		for (step in steps) {
+			if (steps[step].record) numRecordings++;
+		}		
+		indexLength = String(numRecordings).length; 
 		$.pbOverall.show();
 		$.btnNext.title = noTags(settings.resources.next);
 		$.lblSignature.text = noTags(settings.resources.pleaseEnterYourNameHere);
 		$.aiRecording.message = noTags(settings.resources.recording);
-		uploader.initialise(settings.uploadUrl, uploadsProgress);
-		startSession();
-};
-xhr.onerror = function(e) {
-    	Ti.API.debug("STATUS: " + this.status);
-    	Ti.API.debug("TEXT:   " + this.responseText);
-    	Ti.API.debug("ERROR:  " + e.error);
-    	alert('There was an error retrieving the remote data. Try again.');
-    };
-Ti.API.info('getting prompts...');
-xhr.open("GET", startUrl);
-xhr.send();
+		uploader.initialise(settings, Ti.Filesystem.getApplicationDataDirectory(), uploadsProgress);
+		Ti.API.info("starting session");
+		startSession();	
+	} else {
+		Ti.API.info('No internet, and no saved settings. Nothing to do.');	
+		$.lblTitle.text = "Please ensure you're connected to the internet the first time you run this app";			
+		$.consent.hide();
+		$.htmlPreamble.hide();
+	}
+}
+
+// download steps
+try {
+	Ti.API.info("Titanium.Network.createHTTPClient");
+	var xhr = Titanium.Network.createHTTPClient();
+	Ti.API.info("...");
+	xhr.onload = function(e) {
+		Ti.API.info("onload");
+		var data = JSON.parse(this.responseText);
+		// save settings to a file so we'll work offline later...
+		var settingsFile = Ti.Filesystem.getFile(Ti.Filesystem.getApplicationDataDirectory(), "settings.json");
+		settingsFile.write(JSON.stringify(settings = data.model));
+		// now load them back
+		loadSettings();		
+	};
+	xhr.onerror = function(e) {
+		// cannot load from the internet, so use settings from last time
+		Ti.API.info("settings failed to load: " + e.error);
+		loadSettings();
+	};
+	Ti.API.info('getting prompts...');
+	xhr.open("GET", startUrl);
+	xhr.send();
+} catch (x) {
+	Ti.API.error('Failed to get prompts: ' + x);
+	loadSettings();
+}
+
+$.index.open();
 
