@@ -73,8 +73,6 @@ function generateConsentPdf(sig) {
 				Ti.API.debug("Could no get consent PDF: " + e.error);
 				// fall back to an HTML file
 				generateConsentHtml(sig);
-				// create participant form
-				createParticipantForm();				
 		};
 	// Prepare the connection.
 	client.open("GET", url);
@@ -88,6 +86,8 @@ function generateConsentHtml(sig) {
 	var htmlConsentFile = Ti.Filesystem.getFile(Ti.Filesystem.getApplicationDataDirectory(), series, taskName + "-consent.html");
 	htmlConsentFile.write("<html><body>\n"+settings.consent + "\n\n<div><u><i><big>"+sig+"</big></i></u></div>\n<body></html>");
 	consentDoc = htmlConsentFile;
+	// create participant form
+	createParticipantForm();				
 }
 function getNewParticipantId(participantAttributes) {
 	var xhr = Titanium.Network.createHTTPClient();
@@ -99,16 +99,17 @@ function getNewParticipantId(participantAttributes) {
 		// save the attributes to a file
 		var participantFile = Ti.Filesystem.getFile(Ti.Filesystem.getApplicationDataDirectory(), series, "participant.json");
 		participantFile.write(JSON.stringify(participantAttributes));
-		startNextStep();
 	};
 	xhr.onerror = function(e) {
 	   	Ti.API.debug("ERROR:  " + e.error);
 	   	// could not get ID, continue anyway...
-		startNextStep();
 	};
 	Ti.API.info('getting new participant ID...');
 	xhr.open("POST", settings.newParticipantUrl);
 	xhr.send(participantAttributes);
+	
+	// don't wait for that request, just press on...
+	startNextStep();
 }
 
 // progress of all uploads
@@ -140,12 +141,10 @@ function uploadsProgress(uploads, message) {
 // create an upload request for the audio file
 function uploadFile(file) {
 	Ti.API.info('uploadFile('+file.name+')');
-	//xhr.setRequestHeader('Content-Type', 'multipart/form-data');
-	var sName = series + "-" + zeropad(++recIndex, indexLength); // TODO format recIndex with leading zeroes
+	var sName = series + "-" + zeropad(++recIndex, indexLength);
 	Ti.API.info('name '+sName+')');
 	var transcriptName = sName + ".txt";
 	var fTranscript = Ti.Filesystem.getFile(Ti.Filesystem.getApplicationDataDirectory(), series, transcriptName);
-	//fTranscript.write(participantId + ": {" + steps[currentStep].prompt + "} " + steps[currentStep].transcript); TODO implement deferred prefixing of participantId
 	fTranscript.write("{" + steps[currentStep].prompt + "} " + steps[currentStep].transcript);
 	// move recording so it won't be cleaned up before we've finished with it
 	var fAudio = Ti.Filesystem.getFile(Ti.Filesystem.getApplicationDataDirectory(), series, sName + ".wav");
@@ -166,11 +165,12 @@ function uploadFile(file) {
 	}
 	consentSent = true;
 	uploader.prod();
-	//uploadsProgress();
 }
 
 function onNext(e)
 {
+	// always hide next button to prevent double-presses - show it again when we're ready
+	$.btnNext.hide();
 	if ($.btnNext.title == "Start Again") { // TODO i18n
 		$.btnNext.title = noTags(settings.resources.next);
 		startSession();
@@ -180,12 +180,12 @@ function onNext(e)
 	if (!signature) {
 		if (settings.consent && consentShown) {
 			if ($.txtSignature.value == "") {
-				$.txtSignature.focus();
 				alert(noTags(settings.resources.pleaseEnterYourNameToIndicateYourConsent));
+				$.txtSignature.focus();
+				showNextButton();
 			} else {
-				// TODO defer PDF or generate offline
-				//createParticipantForm();
-				generateConsentPdf($.txtSignature.value);
+				//generateConsentPdf($.txtSignature.value); calling the internet takes too long, just use HTML
+				generateConsentHtml($.txtSignature.value);
 			}
 		} else {
 			showConsent(); 
@@ -220,13 +220,14 @@ function startSession() {
     Ti.API.info("startSession");
     // resent UI components
     $.txtSignature.value = "";
-	$.pbOverall.max = steps.length;
 	$.pbOverall.value = 0;
 	if (settings) $.pbOverall.message = noTags(settings.resources.overallProgess);
 	$.lblUpload.text = "";
 	$.lblTitle.text = "";
 	$.lblPrompt.text = "";
 	$.lblTranscript.text = "";	
+	$.aiRecording.hide();
+	showNextButton();
     
     Ti.API.info("show preamble");
 	// start user interface...
@@ -238,6 +239,7 @@ function showPreamble() {
 		$.htmlPreamble.html = settings.preamble;
 		$.htmlPreamble.show();
 		$.consent.hide();
+		showNextButton();
 	} else {
 		showConsent();
 	}
@@ -249,17 +251,52 @@ function showConsent() {
 		$.htmlConsent.html = settings.consent;
 		consentShown = true;
 		$.consent.show();
+		$.txtSignature.show();
 		$.txtSignature.focus();
+		showNextButton();
 	} else {
 		signature = " ";
 		createParticipantForm();
 	}
 }
 
+function checkbox_on() {
+    this.backgroundColor = '#FFFFFF';
+    this.color = '#000000';
+	this.font = {fontSize: 25, fontWeight: 'bold'};
+    this.selected = true;
+    Ti.API.info("Selecting " + this.value);
+    for (o in this.field.options)
+    {
+    	var option = this.field.options[o];
+        Ti.API.info("option " + option.value + " chk: " + option.checkbox);
+    	if (option.value != this.value && option.checkbox) option.checkbox.off();
+    }
+}
+
+function checkbox_off() {
+    this.backgroundColor = '#aaa';
+    this.color = '#FFFFFF';
+    this.selected = false;
+	this.font = {fontSize: 25};
+}
+
+function checkbox_onClick(e) {
+	Ti.API.info("click " + e.source.title);
+    if(false==e.source.selected) {
+        e.source.on();
+    } else {
+        e.source.off();
+    }
+}
+
 function createParticipantForm()
 {
 	$.htmlPreamble.hide();
 	$.consent.hide();
+	$.txtSignature.blur(); // hides the soft keyboard if visible	
+	$.pbOverall.value = 0;
+	$.pbOverall.max = steps.length;
 	if (settings.participantFields.length == 0)
 	{
 		$.participantForm.hide();	
@@ -303,6 +340,7 @@ function createParticipantForm()
 				color: "#000000",
 				font: { fontSize: 20 },
 				verticalAlign: Titanium.UI.TEXT_VERTICAL_ALIGNMENT_CENTER,
+				textAlign: Titanium.UI.TEXT_ALIGNMENT_CENTER,
 				top: String(slot*slotHeightPercentage) + "%", 
 				width: "90%",
 				height: String(slotHeightPercentage) + "%"});
@@ -311,39 +349,9 @@ function createParticipantForm()
 			var value = null;
 			if (field.type == "select")
 			{
-				checkbox_on = function() {
-				    this.backgroundColor = '#FFFFFF';
-				    this.color = '#000000';
-					this.font = {fontSize: 25, fontWeight: 'bold'};
-				    this.selected = true;
-				    Ti.API.info("Selecting " + this.value);
-				    for (o in this.field.options)
-				    {
-				    	var option = this.field.options[o];
-				    	if (option.value != this.value) option.checkbox.off();
-				    }
-				};
-				
-				checkbox_off = function() {
-				    this.backgroundColor = '#aaa';
-				    this.color = '#FFFFFF';
-				    this.selected = false;
-					this.font = {fontSize: 25};
-				};
-				
-				checkbox_onClick = function(e) {
-					Ti.API.info("click " + e.source.title);
-				    if(false==e.source.selected) {
-				        e.source.on();
-				    } else {
-				        e.source.off();
-				    }
-				};
-				for (o in field.options)
-				{
-					var option = field.options[o]; 
-					var checkbox = Ti.UI.createButton({
-					    title: option.description,
+				for (o in field.options) {
+					field.options[o].checkbox = Ti.UI.createButton({
+					    title: field.options[o].description,
 					    borderColor: '#666',
 					    borderWidth: 2,
 					    borderRadius: 3,
@@ -352,21 +360,19 @@ function createParticipantForm()
 					    color: '#fff',
 					    font:{fontSize: 25, fontWeight: 'bold'},
 					    selected: false,
-					    value: option.value,
-					    field: field,
+					    value: field.options[o].value,
 	  					top: String(slot*slotHeightPercentage)+"%", 
-						width: "90%"/*,
-						height: String(slotHeightPercentage) + "%"*/});
-					
-					option.checkbox = checkbox;					
-					
-					//Attach some simple on/off actions
-					checkbox.on = checkbox_on;					
-					checkbox.off = checkbox_off;					
-					checkbox.addEventListener('click', checkbox_onClick);
-					
-					$.participantForm.add(checkbox);
+						width: "90%" 
+						});
 					slot++;
+				}
+				// separately, add radio-button events and link back to the field
+				for (o in field.options) {
+					field.options[o].checkbox.on = checkbox_on;					
+					field.options[o].checkbox.off = checkbox_off;					
+					field.options[o].checkbox.addEventListener('click', checkbox_onClick);
+					field.options[o].checkbox.field = field;
+					$.participantForm.add(field.options[o].checkbox);
 				}
 				field.getValue = function() {
 					Ti.API.info("getting value for " + this.label);
@@ -375,8 +381,7 @@ function createParticipantForm()
 						var option = this.options[o];
 						Ti.API.info("option " + option.value + " - "+ option.checkbox.selected);
 						if (option.checkbox.selected) 
-						{
-							
+						{							
 							return option.value;
 						}
 					}
@@ -463,6 +468,7 @@ function createParticipantForm()
 					color: "#000000",
 	  				top: String(slot*slotHeightPercentage)+"%", 
 					width: "90%",
+					textAlign: Titanium.UI.TEXT_ALIGNMENT_CENTER,
 					/*height: String(slotHeightPercentage) + "%"*/});
 				Ti.API.info("createing control for for " + field.label);
 				field.getValue = function() { 					
@@ -477,15 +483,16 @@ function createParticipantForm()
 		} // next field
 		$.participantForm.opacity = 1.0;
 		$.participantForm.visible = true;
+		showNextButton();
 	}	
 }
 
 function newParticipant()
 {
 	Ti.API.info("newParticipant " + $.participantForm.visible);
-	participantAttributes = {};
 	if ($.participantForm.visible)
 	{ // validate form
+		var provisionalAttributes = {};
 		Ti.API.info("validating...");
 		for (f in settings.participantFields)
 	    {
@@ -496,6 +503,7 @@ function newParticipant()
 			{
 				Ti.API.info(" no value for " + field.attribute);
 				alert(noTags(settings.resources.pleaseSupplyAValueFor) + " " + field.label);
+				showNextButton();
 				return;
 			}
 			else if (field.type == "number")
@@ -503,6 +511,7 @@ function newParticipant()
 				if (isNaN(value))
 				{
 					alert(noTags(settings.resources.pleaseSupplyANumberFor) + " " + field.label);
+					showNextButton();
 					return;
 				}
 			}
@@ -511,6 +520,7 @@ function newParticipant()
 				if (isNaN(value))
 				{
 					alert(noTags(settings.resources.pleaseSupplyANumberFor) + " " + field.label);
+					showNextButton();
 					return;
 				}
 				else
@@ -518,10 +528,15 @@ function newParticipant()
 					value = parseInt(value);
 				}
 			}
-			participantAttributes[field.attribute] = value;
+			// ensure keyboard is hidden if it's been made visible
+			if (field.control && field.control.blur) field.control.blur();
+			provisionalAttributes[field.attribute] = value;
 		} // next field
 		$.participantForm.hide();	
 		$.participantForm.visible = false;
+		participantAttributes = provisionalAttributes;
+	} else {
+		participantAttributes = {};
 	}
 	
 	if (!$.participantForm.visible)
@@ -600,7 +615,7 @@ function showCurrentPhrase() {
 	}
 
 	// ensure size of transcript is appropriate for content length
-	if ($.lblTranscript.text.length > 150)
+	if ($.lblTranscript.text.length > 300)
 	{ // reading passage
 		$.lblTranscript.font = { fontFamily: $.lblTranscript.font.name, fontSize: 20} ;
 		Ti.API.info("Font size: " + $.lblTranscript.font.fontSize);
@@ -653,16 +668,16 @@ function showCurrentPhrase() {
     } 	
     if (currentStep < steps.length - 1)
     { // show next button only if there's a next step 
-    	Ti.API.log("showing next button in a sec...");
-		setTimeout(function() { Ti.API.log("showing next button"); $.btnNext.show(); }, 1000); 
-	
-    	//$.btnNext.show();
+    	showNextButton();
     }
 }
 function clearPrompts() {
 	$.lblTitle.text = "";
 	$.lblPrompt.text = noTags(settings.resources.countdownMessage)+"\n";
 	$.lblTranscript.text = "";	
+}
+function showNextButton() {
+	setTimeout(function() { $.btnNext.show(); }, 1000); 	
 }
 
 function finished()
@@ -798,6 +813,11 @@ function loadSettings() {
 		$.htmlPreamble.hide();
 	}
 }
+
+// initial state of UI
+$.aiRecording.hide();
+$.txtSignature.hide();
+$.btnNext.hide();
 
 // download steps
 try {
