@@ -71,12 +71,10 @@ function doNextUpload() {
 				uploadfile1_0 : transcriptFileIncludingParticipant,
 			    uploadmedia1: fAudio
 			  };
-			  /*
-			if (consentPdf && !consentSent) {
-				formData.doc = consentPdf;
+			if (upload.docFile && upload.docFile.exists()) {
+				Ti.API.info('uploader: doc '+upload.docFile.name);
+				upload.form.doc = upload.docFile;
 			}
-			consentSent = true;
-			*/
 		
 			Ti.API.log("uploader: post " + settings.uploadUrl);
 			upload.percentComplete = 1;
@@ -97,6 +95,9 @@ function doNextUpload() {
 					upload.transcriptFile.deleteFile();
 					upload.form.uploadfile1_0.deleteFile();
 					upload.form.uploadmedia1.deleteFile();
+					if (upload.form.doc) {
+						upload.form.doc.deleteFile();
+					}
 					
 					// start next one, if any
 					timeout = setTimeout(doNextUpload, 50);	    		
@@ -145,14 +146,27 @@ function scanForUploads() {
 		if (file.isDirectory()) { // series
 			// check participant file exists
 			if (!Ti.Filesystem.getFile(directory, files[f], "participant.json").exists()) {
-				Ti.API.log("uploader: skipping" + fileName + " - there's no participant file");
+				Ti.API.log("uploader: skipping " + files[f] + " - there's no participant file");
+				//file.deleteDirectory(true);
 			} else {
-				// get txt files
+				// get files in the series directory
 				var seriesFiles = file.getDirectoryListing();
+				var doc = null;
+				// look for html or pdf files, which are consent forms
+				for (t in seriesFiles) {
+					var fileName = seriesFiles[t];
+					if (fileName.match(/\.html$/) || fileName.match(/\.pdf$/)) {
+						Ti.API.log("uploader: found doc " + fileName);
+						doc = Ti.Filesystem.getFile(directory, files[f], fileName);
+					}
+				} // next file
+				// look for txt files, which are transcripts
+				var foundTranscripts = false;
 				for (t in seriesFiles) {
 					var fileName = seriesFiles[t];
 					if (fileName.match(/\.txt$/) && !uploads[fileName]) {
 						Ti.API.log("uploader: found " + fileName);
+						foundTranscripts = true;
 						var upload = {
 							transcriptName: fileName,
 							transcriptFile: Ti.Filesystem.getFile(directory, files[f], fileName),
@@ -160,10 +174,18 @@ function scanForUploads() {
 							status: "waiting...",
 							percentComplete: 0
 							};
+						if (doc) {
+							upload.docFile = doc;
+							doc = null;
+						}
 						uploads[fileName] = upload;
 						uploadQueue.unshift(upload);
 					} // previously unknown transcript
 				} // next possible transcript
+				if (!foundTranscripts) {
+					Ti.API.log("No transcripts in " + files[f]);
+					//file.deleteDirectory(true);
+				}
 			} // there is a participant.json file
 		} // is directory
 	} // next file

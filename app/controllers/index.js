@@ -85,7 +85,10 @@ function generateConsentPdf(sig) {
 function generateConsentHtml(sig) {
 	signature = sig;
 	var htmlConsentFile = Ti.Filesystem.getFile(Ti.Filesystem.getApplicationDataDirectory(), series, taskName + "-consent.html");
-	htmlConsentFile.write("<html><body>\n"+settings.consent + "\n\n<div><u><i><big>"+sig+"</big></i></u></div>\n<body></html>");
+	htmlConsentFile.write("<html><body>\n"+settings.consent 
+		+ "\n\n<div><u><i><big>&nbsp;&nbsp;"+sig+"&nbsp;&nbsp;</big></i></u></div>"
+		+ "\n\n<div><i>"+new Date()+"</i></div>"
+		+"\n<body></html>");
 	consentDoc = htmlConsentFile;
 	// create participant form
 	createParticipantForm();				
@@ -117,13 +120,20 @@ function getNewParticipantId(participantAttributes) {
 function uploadsProgress(uploads, message) {
 	var transcriptCount = 0;
 	var percentComplete = 0;
+	var currentFile = null;
 	for (transcriptName in uploads) {
 		transcriptCount++;
 		percentComplete += uploads[transcriptName].percentComplete; 
+		if (uploads[transcriptName].status == "uploading...") {
+			currentFile = transcriptName;
+		}
 	} // next upload
 	if (transcriptCount > 0) {
 		lastUploaderStatus = message || noTags(settings.resources.uploadingPleaseWait);
 		lastUploaderStatus += " " + Math.floor(percentComplete / transcriptCount) + "%";
+		if (currentFile) {
+			lastUploaderStatus += " ("+currentFile+")";
+		}
 	} else {
 		lastUploaderStatus = "";
 	}
