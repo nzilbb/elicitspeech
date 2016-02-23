@@ -110,8 +110,7 @@ function doNextUpload() {
 					timeout = setTimeout(doNextUpload, retryFrequency);
 			    },
 			    onsendstream: function(e) {
-					Ti.API.log('uploader: progress...' + e.progress);
-					//	$.pbUpload.value = e.progress ;
+					//Ti.API.log('uploader: progress...' + e.progress);
 					var transcriptName = e.source.transcriptName;
 					uploads[transcriptName].percentComplete = e.progress * 100;
 					uploads[transcriptName].status = "uploading...";
@@ -169,18 +168,29 @@ function scanForUploads() {
 		} // is directory
 	} // next file
 }
-	
+
+// callback for upload progress updates	
 exports.uploadProgress = function(uploads, message) {};
-exports.initialise = function(settingsFromInitialiser, workingDirectory, progressCallback) {
-	exports.uploadProgress = progressCallback;
-	settings = settingsFromInitialiser;
-	directory = workingDirectory;
-	Ti.API.log("uploader: " + directory);
-	doNextUpload();
-};
+
+// wake the uploader up if it's asleep
 exports.prod = function(transcriptName, fd) {
 	if (timeout) {
 		clearTimeout(timeout);
 		timeout = setTimeout(doNextUpload, 50);
 	}
+};
+
+// initialise the uploader
+exports.initialise = function(settingsFromInitialiser, workingDirectory, progressCallback) {
+	exports.uploadProgress = progressCallback;
+	settings = settingsFromInitialiser;
+	directory = workingDirectory;
+	Ti.API.log("uploader: " + directory);
+	Ti.Network.addEventListener('change', function(e) {
+  		if (e.online) {
+  			// wake the uploader up again as soon as we come online
+  			exports.prod();
+  		}
+	});
+	doNextUpload();
 };

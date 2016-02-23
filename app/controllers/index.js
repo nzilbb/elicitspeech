@@ -10,6 +10,7 @@ var steps = [
 ];
 
 var uploader = require("nzilbb.uploader");
+var lastUploaderStatus = "";
 var indexLength = 2;
 
 // series-specific variables
@@ -114,16 +115,23 @@ function getNewParticipantId(participantAttributes) {
 
 // progress of all uploads
 function uploadsProgress(uploads, message) {
+	var transcriptCount = 0;
+	var percentComplete = 0;
+	for (transcriptName in uploads) {
+		transcriptCount++;
+		percentComplete += uploads[transcriptName].percentComplete; 
+	} // next upload
+	if (transcriptCount > 0) {
+		lastUploaderStatus = message || noTags(settings.resources.uploadingPleaseWait);
+		lastUploaderStatus += " " + Math.floor(percentComplete / transcriptCount) + "%";
+	} else {
+		lastUploaderStatus = "";
+	}
+	
 	// if we're actually displaying progress
 	if (currentStep >= steps.length - 1
 		// or we're looking at the preamble
 		|| $.htmlPreamble.visible) {
-		var transcriptCount = 0;
-		var percentComplete = 0;
-		for (transcriptName in uploads) {
-			transcriptCount++;
-			percentComplete += uploads[transcriptName].percentComplete; 
-		} // next upload
 		if (transcriptCount > 0) {
 			$.pbOverall.max = 100;
 			$.pbOverall.value = percentComplete / transcriptCount;
@@ -137,7 +145,14 @@ function uploadsProgress(uploads, message) {
 		}
 	}
 }
-
+function onProgressBar(e) {
+	// user tapped the progress bar
+	if (lastUploaderStatus) {
+		// poor-man's toast notification
+		$.lblUpload.text = lastUploaderStatus;
+		setTimeout(function() { $.lblUpload.text = ""; }, 2000);
+	}
+}
 // create an upload request for the audio file
 function uploadFile(file) {
 	Ti.API.info('uploadFile('+file.name+')');
@@ -251,6 +266,7 @@ function showConsent() {
 		$.htmlConsent.html = settings.consent;
 		consentShown = true;
 		$.consent.show();
+		$.lblSignature.show();
 		$.txtSignature.show();
 		$.txtSignature.focus();
 		showNextButton();
@@ -816,6 +832,7 @@ function loadSettings() {
 
 // initial state of UI
 $.aiRecording.hide();
+$.lblSignature.hide();
 $.txtSignature.hide();
 $.btnNext.hide();
 
