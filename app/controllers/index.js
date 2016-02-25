@@ -717,7 +717,7 @@ function finished()
 	$.btnNext.title = "Start Again"; // TODO i18n
     $.btnNext.show();
     
-    // TODO open consent PDF 	
+    // TODO open consent form 	
 }
 
 function finishLastStep()
@@ -743,11 +743,17 @@ function startRecording()
 	
 	try
 	{
+		/*
 		Titanium.Media.audioSessionMode = Ti.Media.AUDIO_SESSION_MODE_PLAY_AND_RECORD;
 	   	recorder = Ti.Media.createAudioRecorder({
-	   		//compression: Titanium.Media.AUDIO_FORMAT_APPLE_LOSSLESS,//.AUDIO_FORMAT_LINEAR_PCM,
-	   		format: Titanium.Media.AUDIO_FILEFORMAT_WAVE//Titanium.Media.AUDIO_FILEFORMAT_MP4A//.AUDIO_FILEFORMAT_WAVE   		
+	   		//compression: Titanium.Media.AUDIO_FORMAT_LINEAR_PCM,
+	   		format: Titanium.Media.AUDIO_FILEFORMAT_WAVE	
 	   	});
+	   	*/
+		recorder = require("nzilbb.iosaudiorecorder");
+		Ti.API.log("iOS recorder => " + recorder);
+		Ti.API.info("method => " + recorder.example());
+
 	}
 	catch (x)
 	{ // Android - use androidaudiorecorder instead
@@ -763,11 +769,12 @@ function startRecording()
 		}
 			
 	}
-	try
+	
+	/*try
 	{
 		recorder.start();
 	}
-	catch(x)
+	catch(x)*/
 	{ // Android:
 		recorder.start(-1,16000,1,-1);
 	}
@@ -813,7 +820,7 @@ function zeropad(num, size) {
 }
 
 function loadSettings() {
-		Ti.API.info("loadSettings");
+	Ti.API.info("loadSettings");
 
 	var settingsFile = Ti.Filesystem.getFile(Ti.Filesystem.getApplicationDataDirectory(), "settings.json");
 	var blob = settingsFile.read();
@@ -872,6 +879,12 @@ try {
 	Ti.API.error('Failed to get prompts: ' + x);
 	loadSettings();
 }
-
+/*
+try {
+	var service = Ti.App.iOS.registerBackgroundService({url:'background.js'}); // in lib folder
+} catch (bgx) {
+	Ti.API.log("Could not register background service: " + bgx);
+}
+*/
 $.index.open();
 

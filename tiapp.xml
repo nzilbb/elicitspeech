@@ -54,6 +54,7 @@
     </mobileweb>
     <modules>
         <module platform="android">nz.ac.canterbury.nzilbb.androidaudiorecorder</module>
+        <module platform="iphone">nzilbb.iosaudiorecorder</module>
     </modules>
     <deployment-targets>
         <target device="android">true</target>

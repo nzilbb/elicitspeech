@@ -59,7 +59,6 @@ function doNextUpload() {
 			var transcriptFileIncludingParticipant = Ti.Filesystem.getFile(Ti.Filesystem.getTempDirectory(), sUploadedName);
 			transcriptFileIncludingParticipant.write(participantId + ": " + text);
 			upload.transcriptFileIncludingParticipant = transcriptFileIncludingParticipant;
-			var fAudio = Ti.Filesystem.getFile(upload.seriesDirectory.nativePath, upload.transcriptName.replace(/txt$/,"wav"));
 			upload.form = {
 				"content-type" : "application/json",
 				num_transcripts : 1,
@@ -69,7 +68,7 @@ function doNextUpload() {
 				corpus : settings.corpus,
 				family_name : series,
 				uploadfile1_0 : transcriptFileIncludingParticipant,
-			    uploadmedia1: fAudio
+			    uploadmedia1: upload.mediaFile
 			  };
 			if (upload.docFile && upload.docFile.exists()) {
 				Ti.API.info('uploader: doc '+upload.docFile.name);
@@ -166,20 +165,29 @@ function scanForUploads() {
 					var fileName = seriesFiles[t];
 					if (fileName.match(/\.txt$/) && !uploads[fileName]) {
 						Ti.API.log("uploader: found " + fileName);
-						foundTranscripts = true;
-						var upload = {
-							transcriptName: fileName,
-							transcriptFile: Ti.Filesystem.getFile(directory, files[f], fileName),
-							seriesDirectory: Ti.Filesystem.getFile(directory, files[f]),
-							status: "waiting...",
-							percentComplete: 0
-							};
-						if (doc) {
-							upload.docFile = doc;
-							doc = null;
-						}
-						uploads[fileName] = upload;
-						uploadQueue.unshift(upload);
+						var fTranscript = Ti.Filesystem.getFile(directory, files[f], fileName);
+						var fAudio = Ti.Filesystem.getFile(directory, files[f], fileName.replace(/txt$/,"wav"));
+						if (!fAudio.exists()) {
+							// no wav file, so forget this upload
+							Ti.API.log("uploader: deleting " + fileName + " - no associated recording");
+							fTranscript.deleteFile();
+						} else {
+							foundTranscripts = true;
+							var upload = {
+								transcriptName: fileName,
+								transcriptFile: fTranscript,
+								mediaFile: fAudio,
+								seriesDirectory: Ti.Filesystem.getFile(directory, files[f]),
+								status: "waiting...",
+								percentComplete: 0
+								};
+							if (doc) {
+								upload.docFile = doc;
+								doc = null;
+							}
+							uploads[fileName] = upload;
+							uploadQueue.unshift(upload);
+						} // wav file exists
 					} // previously unknown transcript
 				} // next possible transcript
 				if (!foundTranscripts) {
