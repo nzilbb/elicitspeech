@@ -1,7 +1,7 @@
 var settings = null;
 var taskName = "test"; // TODO test outcome when taskName doesn't exist on server
-//var startUrl = "http://192.168.1.140:8080/labbcat/elicit/steps?content-type=application/json&task="+taskName;
-var startUrl = "https://labbcat.canterbury.ac.nz/test/elicit/steps?content-type=application/json&task="+taskName;
+var startUrl = "http://192.168.1.140:8080/labbcat/elicit/steps?content-type=application/json&task="+taskName;
+//var startUrl = "https://labbcat.canterbury.ac.nz/test/elicit/steps?content-type=application/json&task="+taskName;
 var steps = [
 	{
 		prompt: "<p>Unfortunately, the task steps are not currently accessible. Please check you are connected to the internet.</p>",
@@ -196,9 +196,10 @@ function onNext(e)
 {
 	// always hide next button to prevent double-presses - show it again when we're ready
 	$.btnNext.hide();
-	if ($.btnNext.title == "Start Again") { // TODO i18n
-		$.btnNext.title = noTags(settings.resources.next);
-		startSession();
+	if ($.btnNext.title == "Try Again"
+	|| $.btnNext.title == noTags(settings.resources.startAgain)) {
+		// download the task definition again, so that when tasks are updated, all apps get the changes for next session
+		downloadDefinition();
 		return;
 	}
 	Ti.API.info('Next...');
@@ -246,7 +247,10 @@ function startSession() {
     // resent UI components
     $.txtSignature.value = "";
 	$.pbOverall.value = 0;
-	if (settings) $.pbOverall.message = noTags(settings.resources.overallProgess);
+	if (settings) {
+		$.btnNext.title = noTags(settings.resources.next);
+		$.pbOverall.message = noTags(settings.resources.overallProgess);
+	}
 	$.lblUpload.text = "";
 	$.lblTitle.text = "";
 	$.lblPrompt.text = "";
@@ -714,7 +718,7 @@ function finished()
     Ti.API.log("finished - hiding next button");
     $.aiRecording.hide();
     
-	$.btnNext.title = "Start Again"; // TODO i18n
+	$.btnNext.title = noTags(settings.resources.startAgain);
     $.btnNext.show();
     
     // TODO open consent form 	
@@ -844,40 +848,58 @@ function loadSettings() {
 		$.lblTitle.text = "Please ensure you're connected to the internet the first time you run this app";			
 		$.consent.hide();
 		$.htmlPreamble.hide();
+		$.btnNext.title = "Try Again";
+		$.btnNext.show();
 	}
 }
 
-// initial state of UI
-$.aiRecording.hide();
-$.lblSignature.hide();
-$.txtSignature.hide();
-$.btnNext.hide();
-
-// download steps
-try {
-	Ti.API.info("Titanium.Network.createHTTPClient");
-	var xhr = Titanium.Network.createHTTPClient();
-	Ti.API.info("...");
-	xhr.onload = function(e) {
-		Ti.API.info("onload");
-		var data = JSON.parse(this.responseText);
-		// save settings to a file so we'll work offline later...
-		var settingsFile = Ti.Filesystem.getFile(Ti.Filesystem.getApplicationDataDirectory(), "settings.json");
-		settingsFile.write(JSON.stringify(settings = data.model));
-		// now load them back
-		loadSettings();		
-	};
-	xhr.onerror = function(e) {
-		// cannot load from the internet, so use settings from last time
-		Ti.API.info("settings failed to load: " + e.error);
+function downloadDefinition() {
+	// initial state of UI
+	$.aiRecording.hide();
+	$.lblSignature.hide();
+	$.txtSignature.hide();
+	$.btnNext.hide();
+	
+	// download steps
+	try {
+		Ti.API.info("Titanium.Network.createHTTPClient");
+		var xhr = Titanium.Network.createHTTPClient();
+		Ti.API.info("...");
+		xhr.onload = function(e) {
+			Ti.API.info("onload");
+			var data = JSON.parse(this.responseText);
+			if (data.errors.length) {
+				// there was a problem	
+				$.lblTitle.text = "Sorry, the task definition could not be loaded:";
+				$.lblPrompt.text = "";	
+				for (e in data.errors) {
+				Ti.API.info("task failed to load: " + data.errors[e]);
+					$.lblPrompt.text += data.errors[e] + "\n";
+				}		
+				$.consent.hide();
+				$.htmlPreamble.hide();
+				$.btnNext.title = "Try Again";
+    			$.btnNext.show();
+			} else {
+				// save settings to a file so we'll work offline later...
+				var settingsFile = Ti.Filesystem.getFile(Ti.Filesystem.getApplicationDataDirectory(), "settings.json");
+				settingsFile.write(JSON.stringify(settings = data.model));
+				// now load them back...
+				loadSettings();
+			}		
+		};
+		xhr.onerror = function(e) {
+			// cannot load from the internet, so use settings from last time
+			Ti.API.info("settings failed to load: " + e.error);
+			loadSettings();
+		};
+		Ti.API.info('getting prompts...');
+		xhr.open("GET", startUrl);
+		xhr.send();
+	} catch (x) {
+		Ti.API.error('Failed to get prompts: ' + x);
 		loadSettings();
-	};
-	Ti.API.info('getting prompts...');
-	xhr.open("GET", startUrl);
-	xhr.send();
-} catch (x) {
-	Ti.API.error('Failed to get prompts: ' + x);
-	loadSettings();
+	}
 }
 /*
 try {
@@ -886,5 +908,8 @@ try {
 	Ti.API.log("Could not register background service: " + bgx);
 }
 */
+
+downloadDefinition();
+
 $.index.open();
 
