@@ -1,7 +1,8 @@
 var settings = null;
 var taskName = "test"; // TODO test outcome when taskName doesn't exist on server
-var startUrl = "http://192.168.1.140:8080/labbcat/elicit/steps?content-type=application/json&task="+taskName;
-//var startUrl = "https://labbcat.canterbury.ac.nz/test/elicit/steps?content-type=application/json&task="+taskName;
+//var startUrl = "http://192.168.1.140:8080/labbcat/elicit/steps?content-type=application/json&task="+taskName;
+// for Qi's evaluations
+var startUrl = "https://labbcat.canterbury.ac.nz/test/elicit/steps?content-type=application/json&task="+taskName;
 var steps = [
 	{
 		prompt: "<p>Unfortunately, the task steps are not currently accessible. Please check you are connected to the internet.</p>",
@@ -747,17 +748,8 @@ function startRecording()
 	
 	try
 	{
-		/*
-		Titanium.Media.audioSessionMode = Ti.Media.AUDIO_SESSION_MODE_PLAY_AND_RECORD;
-	   	recorder = Ti.Media.createAudioRecorder({
-	   		//compression: Titanium.Media.AUDIO_FORMAT_LINEAR_PCM,
-	   		format: Titanium.Media.AUDIO_FILEFORMAT_WAVE	
-	   	});
-	   	*/
 		recorder = require("nzilbb.iosaudiorecorder");
 		Ti.API.log("iOS recorder => " + recorder);
-		Ti.API.info("method => " + recorder.example());
-
 	}
 	catch (x)
 	{ // Android - use androidaudiorecorder instead
@@ -774,14 +766,7 @@ function startRecording()
 			
 	}
 	
-	/*try
-	{
-		recorder.start();
-	}
-	catch(x)*/
-	{ // Android:
-		recorder.start(-1,16000,1,-1);
-	}
+	recorder.start(-1,16000,1,-1);
 }
 
 function stopRecording()
