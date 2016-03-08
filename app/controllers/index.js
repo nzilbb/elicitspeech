@@ -1,5 +1,5 @@
 var settings = null;
-var taskName = "test"; // TODO test outcome when taskName doesn't exist on server
+var taskName = "test";
 //var startUrl = "http://192.168.1.140:8080/labbcat/elicit/steps?content-type=application/json&task="+taskName;
 // for Qi's evaluations
 var startUrl = "https://labbcat.canterbury.ac.nz/test/elicit/steps?content-type=application/json&task="+taskName;
@@ -685,8 +685,10 @@ function showCurrentPhrase() {
 	// is there an image?
 	if (steps[currentStep].image)
 	{
-		$.image.image = settings.imageBaseUrl + steps[currentStep].image; 
-	}
+		var url = "file://" + Ti.Filesystem.getApplicationDataDirectory() + steps[currentStep].image;
+		Ti.API.log("image: " + url);
+		$.image.image = url; 
+    }
 	else
 	{
 		$.image.image = null;
@@ -866,6 +868,31 @@ function downloadDefinition() {
 				$.btnNext.title = "Try Again";
     			$.btnNext.show();
 			} else {
+				// download images so they'll be visible offline
+				Ti.API.info("Looking for images...");
+				for (s in data.model.steps) {
+					var step = data.model.steps[s];
+					if (step.image) {
+						var imageName = step.image;
+						Ti.API.log("info: " + step.image);
+						var c = Titanium.Network.createHTTPClient();
+						c.onload = function() {
+				        	if (c.status == 200 ) {
+				        		Ti.API.info("Saved " + imageName);
+				                var f = Titanium.Filesystem.getFile(Ti.Filesystem.getApplicationDataDirectory(), imageName);
+				                f.write(this.responseData);
+				           } else {
+			                Ti.API.log("ERROR downloading image: " + c.status);
+				           }
+				        };
+				        c.error = function(e) { 
+			                Ti.API.log("ERROR downloading image: " + e.error);
+			            };
+				        c.open('GET', data.model.imageBaseUrl + step.image);
+            			c.send();   
+					}
+				}
+				
 				// save settings to a file so we'll work offline later...
 				var settingsFile = Ti.Filesystem.getFile(Ti.Filesystem.getApplicationDataDirectory(), "settings.json");
 				settingsFile.write(JSON.stringify(settings = data.model));
