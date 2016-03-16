@@ -29,7 +29,7 @@
 },
 "#image": {
 	textAlign: "center",
-	height: "35%"
+	height: "40%"
 },
 
 "#participantForm": {

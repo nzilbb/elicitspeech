@@ -197,6 +197,9 @@ function onNext(e)
 {
 	// always hide next button to prevent double-presses - show it again when we're ready
 	$.btnNext.hide();
+	// and kill any timer that might want to automatically press next
+	killTimer();
+	
 	if ($.btnNext.title == "Try Again"
 	|| $.btnNext.title == noTags(settings.resources.startAgain)) {
 		// download the task definition again, so that when tasks are updated, all apps get the changes for next session
