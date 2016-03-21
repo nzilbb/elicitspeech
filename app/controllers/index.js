@@ -1,5 +1,5 @@
 var settings = null;
-var taskName = "test";
+var taskName = "es";
 //var startUrl = "http://192.168.1.140:8080/labbcat/elicit/steps?content-type=application/json&task="+taskName;
 // for Qi's evaluations
 var startUrl = "https://labbcat.canterbury.ac.nz/test/elicit/steps?content-type=application/json&task="+taskName;
@@ -343,11 +343,16 @@ function createParticipantForm()
 	
 		// a 'slot' is a row position on the form - one for label, one for control, except some which occupy more slots
 		var slotCount = 0;
+		var tallLabelSlots = 2;
 		var tallControlSlots = 3;
 		for (f in settings.participantFields)
 		{
-			slotCount++; // one slot for label
 			var field = settings.participantFields[f];
+			if (field.label.length > 50) {
+				slotCount += tallLabelSlots; // long label
+			} else {
+				slotCount++;
+			}
 			if (field.type == "select")
 			{
 				slotCount += field.options.length;
@@ -359,12 +364,13 @@ function createParticipantForm()
 			{
 				slotCount += tallControlSlots; // tall control
 			}		
-			else
+			else if (field.type != "boolean") // booleans are added to label
 			{
 				slotCount++; // one-slot control
 			}
 		}
 		var slotHeightPercentage = 100 / slotCount;
+		var slotHeightPx = 40;
 		var slot = 0; 
 		for (f in settings.participantFields)
 	    {
@@ -375,10 +381,17 @@ function createParticipantForm()
 				font: { fontSize: 20 },
 				verticalAlign: Titanium.UI.TEXT_VERTICAL_ALIGNMENT_CENTER,
 				textAlign: Titanium.UI.TEXT_ALIGNMENT_CENTER,
-				top: String(slot*slotHeightPercentage) + "%", 
 				width: "90%",
-				height: String(slotHeightPercentage) + "%"});
-			slot++;
+				top: String(slot*slotHeightPx) + "px", 
+				height: String(slotHeightPx * (field.label.length > 50?tallLabelSlots:1)) + "px"});
+			var labelSlot = slot;
+			var labelSlotHeight = 1;
+			if (field.label.length > 50) {
+				slot+=tallLabelSlots;
+				labelSlotHeight = tallLabelSlots; 
+			} else {  
+				slot++;
+			}
 			$.participantForm.add(label);
 			var value = null;
 			if (field.type == "select")
@@ -395,7 +408,7 @@ function createParticipantForm()
 					    font:{fontSize: 25, fontWeight: 'bold'},
 					    selected: false,
 					    value: field.options[o].value,
-	  					top: String(slot*slotHeightPercentage)+"%", 
+	  					top: String(slot*slotHeightPx)+"px", 
 						width: "90%" 
 						});
 					slot++;
@@ -428,9 +441,9 @@ function createParticipantForm()
 					color: "#000000",
 					type: Ti.UI.PICKER_TYPE_DATE,
 					useSpinner:false,
-	  				top: String(slot*slotHeightPercentage)+"%", 
+	  				top: String(slot*slotHeightPx)+"px", 
 					width: "90%",
-					height: String(slotHeightPercentage*tallControlSlots) + "%"});
+					height: String(slotHeightPx*tallControlSlots) + "px"});
 				field.getValue = function() { return this.control.value; };
 				slot+=tallControlSlots; 
 			}
@@ -440,9 +453,9 @@ function createParticipantForm()
 					color: "#000000",
 					type: Ti.UI.PICKER_TYPE_DATE_AND_TIME,
 					useSpinner:false,
-	  				top: String(slot*slotHeightPercentage)+"%", 
+	  				top: String(slot*slotHeightPx)+"px", 
 					width: "90%",
-					height: String(slotHeightPercentage*tallControlSlots) + "%"});
+					height: String(slotHeightPx*tallControlSlots) + "px"});
 				field.getValue = function() { return this.control.value; };
 				slot+=tallControlSlots; 
 			}
@@ -452,14 +465,15 @@ function createParticipantForm()
 					color: "#000000",
 					type: Ti.UI.PICKER_TYPE_TIME,
 					useSpinner:false,
-	  				top: String(slot*slotHeightPercentage)+"%", 
+	  				top: String(slot*slotHeightPx)+"px", 
 					width: "90%",
-					height: String(slotHeightPercentage*tallControlSlots) + "%"});
+					height: String(slotHeightPx*tallControlSlots) + "px"});
 				field.getValue = function() { return this.control.value; };
 				slot+=tallControlSlots;
 			}
 			else if (field.type == "boolean")
 			{
+				// boolean is a switch on the same line as the label
 				value = Ti.UI.createSwitch({
 					color: "#000000",
 					borderWidth: 2,
@@ -467,17 +481,23 @@ function createParticipantForm()
   					borderRadius: 5,
 					value: false,
 					title: field.description,
-	  				top: String(slot*slotHeightPercentage)+"%", 
-					width: "90%",
-					height: String(slotHeightPercentage) + "%"});
+					top: String(labelSlot*slotHeightPx) + "px", 
+					width: "10%",
+					left: 0});
+				label.right = 0;
+				label.width = "90%";
+				label.textAlign = Titanium.UI.TEXT_ALIGNMENT_LEFT;
+				if (labelSlotHeight > 1) { // tall label, so move the switch down towards the middle
+					value.top = String((labelSlot*slotHeightPx) + (slotHeightPx * labelSlotHeight)/3) + "px";
+				}
 				try
 				{
 					value.style = Ti.UI.Android.SWITCH_STYLE_CHECKBOX;
 				}
 				catch (x)
 				{}
-				field.getValue = function() { return this.control.value; };
-				slot++;			
+				field.getValue = function() { return this.control.value?true:false; };
+				// don't increment slot		
 			}
 			else if (field.type == "text")
 			{
@@ -486,9 +506,9 @@ function createParticipantForm()
 					borderWidth: 2,
   					borderColor: '#bbb',
   					borderRadius: 5,
-	  				top: String(slot*slotHeightPercentage)+"%", 
+	  				top: String(slot*slotHeightPx)+"px", 
 					width: "90%",
-					height: String(slotHeightPercentage*tallControlSlots) + "%"});
+					height: String(slotHeightPx*tallControlSlots) + "px"});
 				field.getValue = function() { return this.control.value; };
 				slot+=tallControlSlots;
 			}
@@ -500,7 +520,7 @@ function createParticipantForm()
   					borderColor: '#bbb',
   					borderRadius: 5,
 					color: "#000000",
-	  				top: String(slot*slotHeightPercentage)+"%", 
+	  				top: String(slot*slotHeightPx)+"px", 
 					width: "90%",
 					textAlign: Titanium.UI.TEXT_ALIGNMENT_CENTER,
 					/*height: String(slotHeightPercentage) + "%"*/});
@@ -533,7 +553,7 @@ function newParticipant()
 			var field = settings.participantFields[f];
 			var value = field.getValue();
 			Ti.API.info(field.attribute + " = " + value);
-			if (!value)
+			if (!value && field.type != "boolean")
 			{
 				Ti.API.info(" no value for " + field.attribute);
 				alert(noTags(settings.resources.pleaseSupplyAValueFor) + " " + field.label);
