@@ -1,8 +1,8 @@
 var settings = null;
 var taskName = "es";
-//var startUrl = "http://192.168.1.140:8080/labbcat/elicit/steps?content-type=application/json&task="+taskName;
+var startUrl = "http://192.168.1.140:8080/labbcat/elicit/steps?content-type=application/json&task="+taskName;
 // for Qi's evaluations
-var startUrl = "https://labbcat.canterbury.ac.nz/test/elicit/steps?content-type=application/json&task="+taskName;
+//var startUrl = "https://labbcat.canterbury.ac.nz/test/elicit/steps?content-type=application/json&task="+taskName;
 var steps = [
 	{
 		prompt: "<p>Unfortunately, the task steps are not currently accessible. Please check you are connected to the internet.</p>",
@@ -369,7 +369,6 @@ function createParticipantForm()
 				slotCount++; // one-slot control
 			}
 		}
-		var slotHeightPercentage = 100 / slotCount;
 		var slotHeightPx = 40;
 		var slot = 0; 
 		for (f in settings.participantFields)
@@ -483,8 +482,8 @@ function createParticipantForm()
 					title: field.description,
 					top: String(labelSlot*slotHeightPx) + "px", 
 					width: "10%",
-					left: 0});
-				label.right = 0;
+					right: 0});
+				label.left = 0;
 				label.width = "90%";
 				label.textAlign = Titanium.UI.TEXT_ALIGNMENT_LEFT;
 				if (labelSlotHeight > 1) { // tall label, so move the switch down towards the middle
@@ -522,8 +521,7 @@ function createParticipantForm()
 					color: "#000000",
 	  				top: String(slot*slotHeightPx)+"px", 
 					width: "90%",
-					textAlign: Titanium.UI.TEXT_ALIGNMENT_CENTER,
-					/*height: String(slotHeightPercentage) + "%"*/});
+					textAlign: Titanium.UI.TEXT_ALIGNMENT_CENTER});
 				Ti.API.info("createing control for for " + field.label);
 				field.getValue = function() { 					
 					Ti.API.info("getting value for " + this.label);
