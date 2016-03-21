@@ -1,8 +1,7 @@
 var settings = null;
 var taskName = "es";
-var startUrl = "http://192.168.1.140:8080/labbcat/elicit/steps?content-type=application/json&task="+taskName;
-// for Qi's evaluations
-//var startUrl = "https://labbcat.canterbury.ac.nz/test/elicit/steps?content-type=application/json&task="+taskName;
+//var startUrl = "http://192.168.1.140:8080/labbcat/elicit/steps?content-type=application/json&task="+taskName;
+var startUrl = "https://labbcat.canterbury.ac.nz/test/elicit/steps?content-type=application/json&task="+taskName;
 var steps = [
 	{
 		prompt: "<p>Unfortunately, the task steps are not currently accessible. Please check you are connected to the internet.</p>",
@@ -369,6 +368,7 @@ function createParticipantForm()
 				slotCount++; // one-slot control
 			}
 		}
+		var slotHeightPercentage = 100 / slotCount;
 		var slotHeightPx = 40;
 		var slot = 0; 
 		for (f in settings.participantFields)
@@ -381,8 +381,8 @@ function createParticipantForm()
 				verticalAlign: Titanium.UI.TEXT_VERTICAL_ALIGNMENT_CENTER,
 				textAlign: Titanium.UI.TEXT_ALIGNMENT_CENTER,
 				width: "90%",
-				top: String(slot*slotHeightPx) + "px", 
-				height: String(slotHeightPx * (field.label.length > 50?tallLabelSlots:1)) + "px"});
+				top: String(slot*slotHeightPercentage) + "%", 
+				height: String(slotHeightPercentage * (field.label.length > 50?tallLabelSlots:1)) + "%"});
 			var labelSlot = slot;
 			var labelSlotHeight = 1;
 			if (field.label.length > 50) {
@@ -407,7 +407,7 @@ function createParticipantForm()
 					    font:{fontSize: 25, fontWeight: 'bold'},
 					    selected: false,
 					    value: field.options[o].value,
-	  					top: String(slot*slotHeightPx)+"px", 
+	  					top: String(slot*slotHeightPercentage)+"%", 
 						width: "90%" 
 						});
 					slot++;
@@ -440,9 +440,9 @@ function createParticipantForm()
 					color: "#000000",
 					type: Ti.UI.PICKER_TYPE_DATE,
 					useSpinner:false,
-	  				top: String(slot*slotHeightPx)+"px", 
+	  				top: String(slot*slotHeightPercentage)+"%", 
 					width: "90%",
-					height: String(slotHeightPx*tallControlSlots) + "px"});
+					height: String(slotHeightPercentage*tallControlSlots) + "%"});
 				field.getValue = function() { return this.control.value; };
 				slot+=tallControlSlots; 
 			}
@@ -452,9 +452,9 @@ function createParticipantForm()
 					color: "#000000",
 					type: Ti.UI.PICKER_TYPE_DATE_AND_TIME,
 					useSpinner:false,
-	  				top: String(slot*slotHeightPx)+"px", 
+	  				top: String(slot*slotHeightPercentage)+"%", 
 					width: "90%",
-					height: String(slotHeightPx*tallControlSlots) + "px"});
+					height: String(slotHeightPercentage*tallControlSlots) + "%"});
 				field.getValue = function() { return this.control.value; };
 				slot+=tallControlSlots; 
 			}
@@ -464,9 +464,9 @@ function createParticipantForm()
 					color: "#000000",
 					type: Ti.UI.PICKER_TYPE_TIME,
 					useSpinner:false,
-	  				top: String(slot*slotHeightPx)+"px", 
+	  				top: String(slot*slotHeightPercentage)+"%", 
 					width: "90%",
-					height: String(slotHeightPx*tallControlSlots) + "px"});
+					height: String(slotHeightPercentage*tallControlSlots) + "%"});
 				field.getValue = function() { return this.control.value; };
 				slot+=tallControlSlots;
 			}
@@ -480,14 +480,14 @@ function createParticipantForm()
   					borderRadius: 5,
 					value: false,
 					title: field.description,
-					top: String(labelSlot*slotHeightPx) + "px", 
+					top: String(labelSlot*slotHeightPercentage) + "%", 
 					width: "10%",
 					right: 0});
 				label.left = 0;
 				label.width = "90%";
 				label.textAlign = Titanium.UI.TEXT_ALIGNMENT_LEFT;
 				if (labelSlotHeight > 1) { // tall label, so move the switch down towards the middle
-					value.top = String((labelSlot*slotHeightPx) + (slotHeightPx * labelSlotHeight)/3) + "px";
+					value.top = String((labelSlot*slotHeightPercentage) + (slotHeightPercentage * labelSlotHeight)/3) + "%";
 				}
 				try
 				{
@@ -505,9 +505,9 @@ function createParticipantForm()
 					borderWidth: 2,
   					borderColor: '#bbb',
   					borderRadius: 5,
-	  				top: String(slot*slotHeightPx)+"px", 
+	  				top: String(slot*slotHeightPercentage)+"%", 
 					width: "90%",
-					height: String(slotHeightPx*tallControlSlots) + "px"});
+					height: String(slotHeightPercentage*tallControlSlots) + "%"});
 				field.getValue = function() { return this.control.value; };
 				slot+=tallControlSlots;
 			}
@@ -519,9 +519,10 @@ function createParticipantForm()
   					borderColor: '#bbb',
   					borderRadius: 5,
 					color: "#000000",
-	  				top: String(slot*slotHeightPx)+"px", 
+	  				top: String(slot*slotHeightPercentage)+"%", 
 					width: "90%",
-					textAlign: Titanium.UI.TEXT_ALIGNMENT_CENTER});
+					textAlign: Titanium.UI.TEXT_ALIGNMENT_CENTER,
+					/*height: String(slotHeightPercentage) + "%"*/});
 				Ti.API.info("createing control for for " + field.label);
 				field.getValue = function() { 					
 					Ti.API.info("getting value for " + this.label);
