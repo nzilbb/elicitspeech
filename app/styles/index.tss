@@ -31,6 +31,10 @@
 	textAlign: "center",
 	height: "40%"
 },
+"#video": {
+	textAlign: "center",
+	height: "40%"
+},
 
 "#participantForm": {
 	top: "5%",

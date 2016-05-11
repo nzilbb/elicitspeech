@@ -1,7 +1,10 @@
 var settings = null;
 var taskName = "es";
-//var startUrl = "http://192.168.1.140:8080/labbcat/elicit/steps?content-type=application/json&task="+taskName;
 var startUrl = "https://labbcat.canterbury.ac.nz/test/elicit/steps?content-type=application/json&task="+taskName;
+// for testing
+taskName = "es";
+startUrl = "http://192.168.1.148:8080/labbcat/elicit/steps?content-type=application/json&task="+taskName;
+
 var steps = [
 	{
 		prompt: "<p>Unfortunately, the task steps are not currently accessible. Please check you are connected to the internet.</p>",
@@ -709,11 +712,22 @@ function showCurrentPhrase() {
 	{
 		var url = "file://" + Ti.Filesystem.getApplicationDataDirectory() + steps[currentStep].image;
 		Ti.API.log("image: " + url);
-		$.image.image = url; 
+		if (/.*mp4/.test(url)) {
+			$.video.url = url;
+			$.video.visible = true;
+			$.video.play();
+			$.image.image = null;
+		} else {
+			$.image.image = url;
+			$.video.url = null;
+			$.video.visible = false;
+		} 
     }
 	else
 	{
 		$.image.image = null;
+		$.video.url = null;
+		$.video.visible = false;
 	}
 	if (currentStep < steps.length - 1 && steps[currentStep].record) {
 		// reveal we are recording	
@@ -895,13 +909,13 @@ function downloadDefinition() {
 				for (s in data.model.steps) {
 					var step = data.model.steps[s];
 					if (step.image) {
-						var imageName = step.image;
-						Ti.API.log("info: " + step.image);
 						var c = Titanium.Network.createHTTPClient();
+						c.imageName = step.image;
+						Ti.API.log("downloading: " + data.model.imageBaseUrl + step.image);
 						c.onload = function() {
-				        	if (c.status == 200 ) {
-				        		Ti.API.info("Saved " + imageName);
-				                var f = Titanium.Filesystem.getFile(Ti.Filesystem.getApplicationDataDirectory(), imageName);
+				        	if (this.status == 200 ) {
+				        		Ti.API.info("Saved " + this.imageName);
+				                var f = Titanium.Filesystem.getFile(Ti.Filesystem.getApplicationDataDirectory(), this.imageName);
 				                f.write(this.responseData);
 				           } else {
 			                Ti.API.log("ERROR downloading image: " + c.status);
