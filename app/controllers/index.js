@@ -624,7 +624,8 @@ function startNextStep() {
 			} else {
 				showCurrentPhrase();
 			}
-			if (steps[currentStep].record) {
+			if (steps[currentStep].record 
+				&& (!steps[currentStep].image || !/.*mp4$/.test(steps[currentStep].image))) { // not video, which starts after playback
 				startRecording();
 			}
 		}
@@ -682,63 +683,98 @@ function showCurrentPhrase() {
 		$.lblTranscript.font = { fontFamily: $.lblTranscript.font.name, fontSize: 32} ;
 		$.lblTranscript.textAlign = "center";
 	}
-	
-	// rearrange UI depending on texts
-	if (steps[currentStep].prompt && !steps[currentStep].transcript
-		&& !steps[currentStep].image) // e.g. map task
-	{
-		$.lblPrompt.height = "70%";
-		$.lblPrompt.show();
-		$.lblTranscript.hide();
-	}
-	else if (steps[currentStep].transcript && ! steps[currentStep].prompt) // e.g. reading task
-	{
-		$.lblPrompt.hide();
-		$.lblTranscript.top = "5%";
-		$.lblTranscript.height = "70%";
-		$.lblTranscript.show();
-	}
-	else // both prompt and transcript are set
-	{
-		$.lblPrompt.height = "35%"; // TODO make this adaptive to the sizes of each
-		$.lblPrompt.show();
-		$.lblTranscript.top = "40%";
-		$.lblTranscript.height = "35%";
-		$.lblTranscript.show();
-	}
-	
+
 	// is there an image?
 	if (steps[currentStep].image)
 	{
 		var url = "file://" + Ti.Filesystem.getApplicationDataDirectory() + steps[currentStep].image;
 		Ti.API.log("image: " + url);
-		if (/.*mp4/.test(url)) {
+		if (/.*mp4$/.test(url)) {
 			$.video.url = url;
-			$.video.visible = true;
+			$.video.addEventListener('complete', function() {
+			    if (currentStep < steps.length - 1) {
+			    	 // show next button only if there's a next step 
+			    	showNextButton();
+			    	
+					if (steps[currentStep].record) {
+						// start recording
+						startRecording();
+						// reveal we are recording	
+				    	$.aiRecording.show();
+	    				// and make sure they don't go over the max time
+	    				startTimer(steps[currentStep].max_seconds, finishLastStep);
+					}
+				}
+			});
 			$.video.play();
-			$.image.image = null;
 		} else {
 			$.image.image = url;
-			$.video.url = null;
-			$.video.visible = false;
 		} 
     }
-	else
-	{
-		$.image.image = null;
-		$.video.url = null;
-		$.video.visible = false;
+	
+	// rearrange UI depending on texts/media...
+	
+	// figure out what's there
+	var proportionPrompt = steps[currentStep].prompt?1:0;
+	var proportionTranscript = steps[currentStep].transcript?1:0;
+	var proportionImage = steps[currentStep].image?1:0;
+	var elementCount = proportionPrompt + proportionTranscript + proportionImage;
+	// scale the elements to fit into 70%
+	var elementShare = 70/elementCount;
+	proportionPrompt *= elementShare;
+	proportionTranscript *= elementShare;
+	proportionImage *= elementShare;
+	
+	var topSoFar = 5;
+	if (proportionPrompt) {
+		$.lblPrompt.top = ""+topSoFar+"%";
+		$.lblPrompt.height = ""+proportionPrompt+"%";
+		$.lblPrompt.show();	
+	} else {
+		$.lblPrompt.hide();
+	}	
+	topSoFar += proportionPrompt;
+	if (proportionTranscript) {
+		$.lblTranscript.top = ""+topSoFar+"%";
+		$.lblTranscript.height = ""+proportionTranscript+"%";
+		$.lblTranscript.show();	
+	} else {
+		$.lblTranscript.hide();
+	}	
+	topSoFar += proportionTranscript;
+	if (proportionImage) {
+		if (/.*mp4$/.test(steps[currentStep].image)) { // video
+			$.video.top = ""+topSoFar+"%";
+			$.video.height = ""+proportionImage+"%";
+			$.video.visible = true;	
+			$.image.visible = false;
+			$.image.image = null;
+		} else { // image
+			$.image.top = ""+topSoFar+"%";
+			$.image.height = ""+proportionImage+"%";
+			$.image.visible = true;	
+			$.video.visible = false;
+			$.video.url = null;
+		}
+	} else { // neither
+			$.video.visible = false;
+			$.video.url = null;
+			$.image.visible = false;
+			$.image.image = null;
+	}	
+		
+	if (!steps[currentStep].image || !/.*mp4$/.test(steps[currentStep].image)) { // not playing a video
+		if (currentStep < steps.length - 1 && steps[currentStep].record) {
+			// reveal we are recording	
+	    	$.aiRecording.show();
+	    	// and make sure they don't go over the max time
+	    	startTimer(steps[currentStep].max_seconds, finishLastStep);
+	    } 	
+	    if (currentStep < steps.length - 1) {
+	    	 // show next button only if there's a next step 
+	    	showNextButton();
+	    }
 	}
-	if (currentStep < steps.length - 1 && steps[currentStep].record) {
-		// reveal we are recording	
-    	$.aiRecording.show();
-    	// and make sure they don't go over the max time
-    	startTimer(steps[currentStep].max_seconds, finishLastStep);
-    } 	
-    if (currentStep < steps.length - 1)
-    { // show next button only if there's a next step 
-    	showNextButton();
-    }
 }
 function clearPrompts() {
 	$.lblTitle.text = "";
@@ -853,7 +889,7 @@ function loadSettings() {
 	var blob = settingsFile.read();
 	if (blob != null) {
 		settings = JSON.parse(blob.text);
-		steps = settings.steps;
+		steps = createStepsInstanceFromDefinition(settings.steps, settings.groups);
 		var numRecordings = 0;
 		for (step in steps) {
 			if (steps[step].record) numRecordings++;
@@ -874,6 +910,70 @@ function loadSettings() {
 		$.btnNext.title = "Try Again";
 		$.btnNext.show();
 	}
+}
+
+// creates task steps to use, based on the defined steps, and the defined groups, 
+// which may specify that steps are randomly ordered and/or only a subset are used
+function createStepsInstanceFromDefinition(steps, groups) {
+    var stepsInstance = [];
+    var currentGroupId = -1;
+    var groupSteps = [];
+    for (var s in steps) {
+	var step = steps[s];
+	// is it a new group?
+	if (step.group_id != currentGroupId) {
+	    if (groupSteps.length > 0) { // finish last group
+		stepsInstance = stepsInstance.concat(prepareStepsGroup(groupSteps, groups[currentGroupId]));
+	    }
+	    // start new group
+	    currentGroupId = step.group_id;
+	    groupSteps = [];
+	} // change in group
+	groupSteps.push(step);
+    } // next step
+    // finish last group
+    if (groupSteps.length > 0) { // finish last group
+	stepsInstance = stepsInstance.concat(prepareStepsGroup(groupSteps, groups[currentGroupId]));
+    }
+    return stepsInstance;
+}
+
+// creates steps to use for a particular group, based on the defined group steps, 
+// and the group definition, which may specify that steps are randomly ordered
+// and/or only a subset are used
+function prepareStepsGroup(steps, group) {
+    // random order?
+    if (/.*random.*/.test(group.sample)) {
+	steps = shuffle(steps);
+    }
+
+    // sample only?
+    if (/.*sample.*/.test(group.sample) && group.step_count > 0) {
+	// use the first step_count elements
+	steps = steps.slice(0, group.step_count);
+    }
+    return steps;
+}
+
+// Fisher-Yates (aka Knuth) array shuffling
+// thanks to http://www.itsmycodeblog.com/shuffling-a-javascript-array/
+function shuffle(array) {
+  var currentIndex = array.length, temporaryValue, randomIndex ;
+
+  // While there remain elements to shuffle...
+  while (0 !== currentIndex) {
+
+    // Pick a remaining element...
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex -= 1;
+
+    // And swap it with the current element.
+    temporaryValue = array[currentIndex];
+    array[currentIndex] = array[randomIndex];
+    array[randomIndex] = temporaryValue;
+  }
+
+  return array;
 }
 
 function downloadDefinition() {
