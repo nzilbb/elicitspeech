@@ -12,6 +12,8 @@ var steps = [
 	}
 ];
 
+$.video.mediaControlStyle = Titanium.Media.VIDEO_CONTROL_NONE;
+
 var uploader = require("nzilbb.uploader");
 var lastUploaderStatus = "";
 var indexLength = 2;
