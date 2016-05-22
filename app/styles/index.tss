@@ -33,7 +33,9 @@
 },
 "#video": {
 	textAlign: "center",
-	height: "40%"
+	height: "40%",
+	mediaControlStyle: Titanium.Media.VIDEO_CONTROL_NONE,
+	backgroundColor: "white"
 },
 
 "#participantForm": {

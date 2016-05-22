@@ -12,8 +12,6 @@ var steps = [
 	}
 ];
 
-$.video.mediaControlStyle = Titanium.Media.VIDEO_CONTROL_NONE;
-
 var uploader = require("nzilbb.uploader");
 var lastUploaderStatus = "";
 var indexLength = 2;
@@ -55,12 +53,22 @@ function timerTick() {
 	var now = new Date().getTime();
 	if (countdownDisplay) {
 		var secondsLeft = ""+(Math.floor((countdownEnd - now) / 1000) + 1);
-		$.lblPrompt.text = noTags(settings.resources.countdownMessage) + "\n" + secondsLeft;
+		setPrompt(settings.resources.countdownMessage + "<br>" + secondsLeft);
 	}	
 	if (now >= countdownEnd) {
 		killTimer();
 		countdownCall();
 	}
+}
+
+function setPrompt(prompt) {
+	$.lblPrompt.html = "";
+	if (prompt.trim() != "") {
+		appendPrompt(prompt);
+	}
+}
+function appendPrompt(prompt) {
+	$.lblPrompt.html = "<div style='text-align: center; font-size: 24pt; font-family: sans-serif;'>"+prompt+"</div>";
 }
 
 function generateConsentPdf(sig) {
@@ -261,7 +269,7 @@ function startSession() {
 	}
 	$.lblUpload.text = "";
 	$.lblTitle.text = "";
-	$.lblPrompt.text = "";
+	setPrompt("");
 	$.lblTranscript.text = "";	
 	$.aiRecording.hide();
 	showNextButton();
@@ -640,7 +648,7 @@ function startNextStep() {
 	else // finished all steps
 	{
 		Ti.API.info('No more steps');
-		$.lblPrompt.text = "";
+		setPrompt("");
 		$.lblTranscript.text = "";
 		finished();	
 	}
@@ -658,11 +666,11 @@ function showCurrentPhrase() {
 	}
     if (steps[currentStep].prompt)
     {
-		$.lblPrompt.text = steps[currentStep].prompt;
+		setPrompt(steps[currentStep].prompt);
 	}
 	else 
 	{
-		$.lblPrompt.text = "";
+		setPrompt("");
 	}
 	if (steps[currentStep].transcript)
 	{
@@ -780,7 +788,7 @@ function showCurrentPhrase() {
 }
 function clearPrompts() {
 	$.lblTitle.text = "";
-	$.lblPrompt.text = noTags(settings.resources.countdownMessage)+"\n";
+	setPrompt(settings.resources.countdownMessage + "<br>");
 	$.lblTranscript.text = "";	
 }
 function showNextButton() {
@@ -790,7 +798,7 @@ function showNextButton() {
 function finished()
 {
 	if (participantAttributes.id) {
-		$.lblPrompt.text += "\n\n"+noTags(settings.resources.yourParticipantIdIs)+"\n"+participantAttributes.id;
+		appendPrompt("<br><br>"+settings.resources.yourParticipantIdIs+"<br>"+participantAttributes.id);
 	}	    	
     Ti.API.log("finished - hiding next button");
     $.aiRecording.hide();
@@ -996,10 +1004,10 @@ function downloadDefinition() {
 			if (data.errors.length) {
 				// there was a problem	
 				$.lblTitle.text = "Sorry, the task definition could not be loaded:";
-				$.lblPrompt.text = "";	
+				setPrompt("");	
 				for (e in data.errors) {
 				Ti.API.info("task failed to load: " + data.errors[e]);
-					$.lblPrompt.text += data.errors[e] + "\n";
+					setPrompt(data.errors[e] + "<br>");
 				}		
 				$.consent.hide();
 				$.htmlPreamble.hide();

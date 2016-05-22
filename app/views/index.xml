@@ -2,7 +2,7 @@
 	<Window class="container">
 		<ScrollView id="scrollview" scrollType="vertical">
 		<Label id="lblTitle"></Label>
-		<Label id="lblPrompt"></Label>
+		<WebView id="lblPrompt"></WebView>
 		<Label id="lblTranscript"></Label>
 		<ImageView id="image"></ImageView>
 		<VideoPlayer id="video"></VideoPlayer>
