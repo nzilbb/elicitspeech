@@ -191,7 +191,7 @@ function scanForUploads() {
 					} // previously unknown transcript
 				} // next possible transcript
 				if (!foundTranscripts) {
-					Ti.API.log("No transcripts in " + files[f]);
+					//Ti.API.log("No transcripts in " + files[f]);
 					//file.deleteDirectory(true);
 				}
 			} // there is a participant.json file

@@ -53,6 +53,9 @@ function timerTick() {
 	var now = new Date().getTime();
 	if (countdownDisplay) {
 		var secondsLeft = ""+(Math.floor((countdownEnd - now) / 1000) + 1);
+		$.lblPrompt.top = "5%";
+		$.lblPrompt.height = "70%";
+		$.lblPrompt.show();	
 		setPrompt(settings.resources.countdownMessage + "<br>" + secondsLeft);
 	}	
 	if (now >= countdownEnd) {
@@ -183,7 +186,7 @@ function uploadFile(file) {
 	Ti.API.info('name '+sName+')');
 	var transcriptName = sName + ".txt";
 	var fTranscript = Ti.Filesystem.getFile(Ti.Filesystem.getApplicationDataDirectory(), series, transcriptName);
-	fTranscript.write("{" + steps[currentStep].prompt + "} " + steps[currentStep].transcript);
+	fTranscript.write("{" + noTags(steps[currentStep].prompt) + "} " + steps[currentStep].transcript);
 	// move recording so it won't be cleaned up before we've finished with it
 	var fAudio = Ti.Filesystem.getFile(Ti.Filesystem.getApplicationDataDirectory(), series, sName + ".wav");
 	file.move(fAudio.nativePath);
@@ -268,9 +271,8 @@ function startSession() {
 		$.pbOverall.message = noTags(settings.resources.overallProgess);
 	}
 	$.lblUpload.text = "";
-	$.lblTitle.text = "";
+	clearPrompts();
 	setPrompt("");
-	$.lblTranscript.text = "";	
 	$.aiRecording.hide();
 	showNextButton();
     
@@ -789,7 +791,9 @@ function showCurrentPhrase() {
 function clearPrompts() {
 	$.lblTitle.text = "";
 	setPrompt(settings.resources.countdownMessage + "<br>");
-	$.lblTranscript.text = "";	
+	$.lblTranscript.text = "";
+	$.image.hide();
+	$.video.hide();	
 }
 function showNextButton() {
 	setTimeout(function() { $.btnNext.show(); }, 1000); 	
@@ -797,6 +801,15 @@ function showNextButton() {
 
 function finished()
 {
+	// ensure the prompt is visible
+	$.lblPrompt.top = "5%";
+	$.lblPrompt.height = "35%";
+	$.lblPrompt.show();	
+	// ensure it doesn't cover up any final vide/image
+	$.video.top = "40%";
+	$.video.height = "35%";
+	$.image.top = "40%";
+	$.image.height = "35%";
 	if (participantAttributes.id) {
 		appendPrompt("<br><br>"+settings.resources.yourParticipantIdIs+"<br>"+participantAttributes.id);
 	}	    	
