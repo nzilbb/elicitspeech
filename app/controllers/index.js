@@ -1,9 +1,9 @@
 var settings = null;
-var taskName = "es";
-var startUrl = "https://labbcat.canterbury.ac.nz/test/elicit/steps?content-type=application/json&task="+taskName;
+var taskName = "test";
+var startUrl = "https://linda.canterbury.ac.nz/labbcat/elicit/steps?content-type=application/json&task="+taskName;
 // for testing
-taskName = "es";
-startUrl = "http://192.168.1.148:8080/labbcat/elicit/steps?content-type=application/json&task="+taskName;
+//taskName = "es";
+//startUrl = "http://192.168.1.148:8080/labbcat/elicit/steps?content-type=application/json&task="+taskName;
 
 var steps = [
 	{
@@ -703,21 +703,6 @@ function showCurrentPhrase() {
 		Ti.API.log("image: " + url);
 		if (/.*mp4$/.test(url)) {
 			$.video.url = url;
-			$.video.addEventListener('complete', function() {
-			    if (currentStep < steps.length - 1) {
-			    	 // show next button only if there's a next step 
-			    	showNextButton();
-			    	
-					if (steps[currentStep].record) {
-						// start recording
-						startRecording();
-						// reveal we are recording	
-				    	$.aiRecording.show();
-	    				// and make sure they don't go over the max time
-	    				startTimer(steps[currentStep].max_seconds, finishLastStep);
-					}
-				}
-			});
 			$.video.play();
 		} else {
 			$.image.image = url;
@@ -786,6 +771,27 @@ function showCurrentPhrase() {
 	    	 // show next button only if there's a next step 
 	    	showNextButton();
 	    }
+	}
+}
+
+function videoFinished() {
+	if (currentStep < steps.length - 1) {
+		 // show next button only if there's a next step
+		 Ti.API.log("VIDEO finished, show next button"); 
+		 showNextButton();
+		
+	 	 if (steps[currentStep].record) {
+			 // start recording
+	    	 Ti.API.log("VIDEO:...and start recording..."); 
+			 startRecording();
+			 // reveal we are recording	
+	    	 Ti.API.log("VIDEO:...and show recording..."); 
+	    	 $.aiRecording.show();
+			 // and make sure they don't go over the max time
+	    	 Ti.API.log("VIDEO:...and start max seconds timer..."); 
+			 startTimer(steps[currentStep].max_seconds, finishLastStep);
+	    	 Ti.API.log("VIDEO:...done"); 
+		 }
 	}
 }
 function clearPrompts() {

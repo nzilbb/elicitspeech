@@ -5,7 +5,7 @@
 		<WebView id="lblPrompt"></WebView>
 		<Label id="lblTranscript"></Label>
 		<ImageView id="image"></ImageView>
-		<VideoPlayer id="video"></VideoPlayer>
+		<VideoPlayer id="video" onComplete="videoFinished"></VideoPlayer>
 		<ScrollView id="participantForm" scrollType="vertical"></ScrollView>
 		<WebView id="htmlPreamble"></WebView>
 		<View id="consent">
