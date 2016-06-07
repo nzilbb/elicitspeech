@@ -1,8 +1,8 @@
 var settings = null;
-var taskName = "test";
+var taskName = "es-proto";
 var startUrl = "https://linda.canterbury.ac.nz/labbcat/elicit/steps?content-type=application/json&task="+taskName;
 // for testing
-//taskName = "es";
+//taskName = "en";
 //startUrl = "http://192.168.1.148:8080/labbcat/elicit/steps?content-type=application/json&task="+taskName;
 
 var steps = [
@@ -15,6 +15,9 @@ var steps = [
 var uploader = require("nzilbb.uploader");
 var lastUploaderStatus = "";
 var indexLength = 2;
+
+var imagesToDownload = 0;
+var imagesDownloaded = 0;
 
 // series-specific variables
 var series = null;
@@ -185,8 +188,19 @@ function uploadFile(file) {
 	var sName = series + "-" + zeropad(++recIndex, indexLength);
 	Ti.API.info('name '+sName+')');
 	var transcriptName = sName + ".txt";
+	var transcriptText =	 	
+	// meta-data
+	"app=mobile\r\n"
+	+ "appVersion="+Titanium.App.version+"\r\n"
+	+ "appPlatform="+Titanium.Platform.osname+" "+Titanium.Platform.version+" "+Titanium.Platform.architecture+"\r\n"
+	+ "appDevice="+Titanium.Platform.model+"\r\n"
+	+ steps[currentStep].tags + "\r\n"
+	// prompt as comment
+	+ "{" + noTags(steps[currentStep].prompt) + "} "
+	// transcript 
+	+ steps[currentStep].transcript;
 	var fTranscript = Ti.Filesystem.getFile(Ti.Filesystem.getApplicationDataDirectory(), series, transcriptName);
-	fTranscript.write("{" + noTags(steps[currentStep].prompt) + "} " + steps[currentStep].transcript);
+	fTranscript.write(transcriptText);
 	// move recording so it won't be cleaned up before we've finished with it
 	var fAudio = Ti.Filesystem.getFile(Ti.Filesystem.getApplicationDataDirectory(), series, sName + ".wav");
 	file.move(fAudio.nativePath);
@@ -208,12 +222,15 @@ function uploadFile(file) {
 	uploader.prod();
 }
 
-function onNext(e)
-{
+function deferredOnNext(e) {
 	// always hide next button to prevent double-presses - show it again when we're ready
 	$.btnNext.hide();
-	// and kill any timer that might want to automatically press next
-	killTimer();
+	
+	// defer onNext for one second, to ensure the last of what they're saying gets recorded
+	startTimer(0.5, onNext);	
+}
+
+function onNext() {
 	
 	if ($.btnNext.title == "Try Again"
 	|| $.btnNext.title == noTags(settings.resources.startAgain)) {
@@ -274,6 +291,7 @@ function startSession() {
 	clearPrompts();
 	setPrompt("");
 	$.aiRecording.hide();
+	$.aiRecording.message = noTags(settings.resources.recording);
 	showNextButton();
     
     Ti.API.info("show preamble");
@@ -911,6 +929,19 @@ function zeropad(num, size) {
 	return s.substr(s.length - size);
 }
 
+function waitForImages() {
+	Ti.API.log("waitForImages "+imagesDownloaded+"/"+imagesToDownload);
+	if (imagesToDownload > imagesDownloaded) {
+		$.pbOverall.show();
+		$.pbOverall.max = imagesToDownload;
+		$.pbOverall.value = imagesDownloaded;
+		$.pbOverall.message = noTags(settings.resources.countdownMessage) + " ("+imagesDownloaded+" / " + imagesToDownload + ")";
+		setTimeout(waitForImages, 1000);
+	} else {
+	 	startSession();
+	}
+}
+
 function loadSettings() {
 	Ti.API.info("loadSettings");
 
@@ -928,9 +959,9 @@ function loadSettings() {
 		$.btnNext.title = noTags(settings.resources.next);
 		$.lblSignature.text = noTags(settings.resources.pleaseEnterYourNameHere);
 		$.aiRecording.message = noTags(settings.resources.recording);
-		uploader.initialise(settings, Ti.Filesystem.getApplicationDataDirectory(), uploadsProgress);
-		Ti.API.info("starting session");
-		startSession();	
+		if (!uploader.initialised) {
+			uploader.initialise(settings, Ti.Filesystem.getApplicationDataDirectory(), uploadsProgress);
+		}
 	} else {
 		Ti.API.info('No internet, and no saved settings. Nothing to do.');	
 		$.lblTitle.text = "Please ensure you're connected to the internet the first time you run this app";			
@@ -1005,6 +1036,36 @@ function shuffle(array) {
   return array;
 }
 
+function downloadStepImage(s) {
+	var step = settings.steps[s];
+    var f = Titanium.Filesystem.getFile(Ti.Filesystem.getApplicationDataDirectory(), step.image);
+	Ti.API.log("file: " + f.name + " " + f.exists());
+    if (f.exists()) {
+    	imagesDownloaded++;
+    } else {
+		var c = Titanium.Network.createHTTPClient();
+		c.imageName = step.image;
+		Ti.API.log("downloading: " + settings.imageBaseUrl + step.image);
+		c.onload = function() {
+	    	if (this.status == 200 ) {
+	    		Ti.API.info("Saved " + this.imageName);
+	            var f = Titanium.Filesystem.getFile(Ti.Filesystem.getApplicationDataDirectory(), this.imageName);
+	            f.write(this.responseData);
+	            imagesDownloaded++;
+	       } else {
+	        Ti.API.log("ERROR downloading image: " + c.status);
+	        downloadStepImage(s); // keep trying
+	       }
+	    };
+	    c.error = function(e) { 
+	        Ti.API.log("ERROR downloading image: " + e.error);
+	        downloadStepImage(s); // keep trying
+	    };
+	    c.open('GET', settings.imageBaseUrl + step.image);
+		c.send();
+	}   	
+}
+
 function downloadDefinition() {
 	// initial state of UI
 	$.aiRecording.hide();
@@ -1033,36 +1094,24 @@ function downloadDefinition() {
 				$.btnNext.title = "Try Again";
     			$.btnNext.show();
 			} else {
-				// download images so they'll be visible offline
-				Ti.API.info("Looking for images...");
-				for (s in data.model.steps) {
-					var step = data.model.steps[s];
-					if (step.image) {
-						var c = Titanium.Network.createHTTPClient();
-						c.imageName = step.image;
-						Ti.API.log("downloading: " + data.model.imageBaseUrl + step.image);
-						c.onload = function() {
-				        	if (this.status == 200 ) {
-				        		Ti.API.info("Saved " + this.imageName);
-				                var f = Titanium.Filesystem.getFile(Ti.Filesystem.getApplicationDataDirectory(), this.imageName);
-				                f.write(this.responseData);
-				           } else {
-			                Ti.API.log("ERROR downloading image: " + c.status);
-				           }
-				        };
-				        c.error = function(e) { 
-			                Ti.API.log("ERROR downloading image: " + e.error);
-			            };
-				        c.open('GET', data.model.imageBaseUrl + step.image);
-            			c.send();   
-					}
-				}
-				
 				// save settings to a file so we'll work offline later...
 				var settingsFile = Ti.Filesystem.getFile(Ti.Filesystem.getApplicationDataDirectory(), "settings.json");
 				settingsFile.write(JSON.stringify(settings = data.model));
 				// now load them back...
 				loadSettings();
+
+				// download images so they'll be visible offline
+				Ti.API.info("Looking for images...");
+				imagesToDownload = 0;
+				imagesDownloaded = 0;
+				for (s in data.model.steps) {
+					if (data.model.steps[s].image) {
+						imagesToDownload++;
+						downloadStepImage(s);
+					}
+				}				
+				Ti.API.info("ensure all images are downloaded");
+				waitForImages();
 			}		
 		};
 		xhr.onerror = function(e) {

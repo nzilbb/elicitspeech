@@ -57,7 +57,8 @@ function doNextUpload() {
 			// create form data
 			var text = upload.transcriptFile.read().text;
 			var transcriptFileIncludingParticipant = Ti.Filesystem.getFile(Ti.Filesystem.getTempDirectory(), sUploadedName);
-			transcriptFileIncludingParticipant.write(participantId + ": " + text);
+			// insert the participant ID after the meta data and before the starting comment
+			transcriptFileIncludingParticipant.write(text.replace(/{/, participantId + ": {"));
 			upload.transcriptFileIncludingParticipant = transcriptFileIncludingParticipant;
 			upload.form = {
 				"content-type" : "application/json",
@@ -212,6 +213,7 @@ exports.prod = function(transcriptName, fd) {
 
 // initialise the uploader
 exports.initialise = function(settingsFromInitialiser, workingDirectory, progressCallback) {
+	exports.initialised = true;
 	exports.uploadProgress = progressCallback;
 	settings = settingsFromInitialiser;
 	directory = workingDirectory;
@@ -224,3 +226,5 @@ exports.initialise = function(settingsFromInitialiser, workingDirectory, progres
 	});
 	doNextUpload();
 };
+
+exports.initialised = false;

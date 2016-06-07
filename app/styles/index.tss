@@ -8,7 +8,7 @@
 	width: "90%",
 	color: "black",
 	top: "2%",
-	font: { fontSize: 22 }
+	font: { fontSize: 20 }
 },
 "#lblPrompt": {
 	textAlign: "center",

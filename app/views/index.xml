@@ -14,7 +14,7 @@
 			<TextField id="txtSignature"></TextField>
 		</View>
 		<ActivityIndicator id="aiRecording" message=""></ActivityIndicator>
-		<Button id="btnNext" onClick="onNext">Next</Button>
+		<Button id="btnNext" onClick="deferredOnNext">Next</Button>
 		<Label id="lblUpload"></Label>
 		<ProgressBar id="pbOverall" message="Overall Progress" onClick="onProgressBar"></ProgressBar>
 		</ScrollView>
