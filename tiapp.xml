@@ -2,7 +2,7 @@
 <ti:app xmlns:ti="http://ti.appcelerator.org">
     <id>nzilbb.elicitspeech</id>
     <name>ElicitSpeech</name>
-    <version>1.38</version>
+    <version>1.39</version>
     <publisher>Robert Fromont</publisher>
     <url>http://www.nzilbb.canterbury.ac.nz</url>
     <description>Elicits speech, which is recorded and uploaded to a server for analysis.</description>

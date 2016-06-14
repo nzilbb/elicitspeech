@@ -1118,6 +1118,7 @@ function downloadDefinition() {
 			// cannot load from the internet, so use settings from last time
 			Ti.API.info("settings failed to load: " + e.error);
 			loadSettings();
+			startSession();
 		};
 		Ti.API.info('getting prompts...');
 		xhr.open("GET", startUrl);
@@ -1125,6 +1126,7 @@ function downloadDefinition() {
 	} catch (x) {
 		Ti.API.error('Failed to get prompts: ' + x);
 		loadSettings();
+		startSession();
 	}
 }
 /*
