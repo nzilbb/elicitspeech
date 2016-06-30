@@ -1,9 +1,6 @@
 var settings = null;
-var taskName = "es-proto";
-var startUrl = "https://linda.canterbury.ac.nz/labbcat/elicit/steps?content-type=application/json&task="+taskName;
-// for testing
-//taskName = "en";
-//startUrl = "http://192.168.1.148:8080/labbcat/elicit/steps?content-type=application/json&task="+taskName;
+var taskName = Ti.App.Properties.getString("taskName");
+var startUrl = Ti.App.Properties.getString("startUrl") + taskName;
 
 var steps = [
 	{
