@@ -946,7 +946,7 @@ function loadSettings() {
 	var blob = settingsFile.read();
 	if (blob != null) {
 		settings = JSON.parse(blob.text);
-		steps = createStepsInstanceFromDefinition(settings.steps, settings.groups);
+		steps = createStepsInstanceFromDefinition(settings.steps, "ordered", 0);
 		var numRecordings = 0;
 		for (step in steps) {
 			if (steps[step].record) numRecordings++;
@@ -969,47 +969,33 @@ function loadSettings() {
 	}
 }
 
-// creates task steps to use, based on the defined steps, and the defined groups, 
+// recursively creates task steps to use, based on the defined steps, and the sample configuration, 
 // which may specify that steps are randomly ordered and/or only a subset are used
-function createStepsInstanceFromDefinition(steps, groups) {
-    var stepsInstance = [];
-    var currentGroupId = -1;
-    var groupSteps = [];
-    for (var s in steps) {
-	var step = steps[s];
-	// is it a new group?
-	if (step.group_id != currentGroupId) {
-	    if (groupSteps.length > 0) { // finish last group
-		stepsInstance = stepsInstance.concat(prepareStepsGroup(groupSteps, groups[currentGroupId]));
-	    }
-	    // start new group
-	    currentGroupId = step.group_id;
-	    groupSteps = [];
-	} // change in group
-	groupSteps.push(step);
-    } // next step
-    // finish last group
-    if (groupSteps.length > 0) { // finish last group
-	stepsInstance = stepsInstance.concat(prepareStepsGroup(groupSteps, groups[currentGroupId]));
-    }
-    return stepsInstance;
-}
-
-// creates steps to use for a particular group, based on the defined group steps, 
-// and the group definition, which may specify that steps are randomly ordered
-// and/or only a subset are used
-function prepareStepsGroup(steps, group) {
+function createStepsInstanceFromDefinition(steps, sample, step_count) {
     // random order?
-    if (/.*random.*/.test(group.sample)) {
-	steps = shuffle(steps);
+    if (/.*random.*/.test(sample)) {
+	steps = shuffle(steps.slice()); // shuffle a copy
     }
-
     // sample only?
-    if (/.*sample.*/.test(group.sample) && group.step_count > 0) {
-	// use the first step_count elements
-	steps = steps.slice(0, group.step_count);
+    if (!/.*sample.*/.test(sample) || step_count == 0) {
+	step_count = steps.length;
     }
-    return steps;
+    var stepsInstance = [];
+    for (var i = 0; i < step_count; i++) {
+        var step = steps[i];
+	// if the step has more than just a title
+	if (step.prompt || step.transcript || step.image) {
+	    // include it
+	    stepsInstance.push(step);
+	}
+	// does this step have children?
+	if (step.steps) {
+	    stepsInstance = stepsInstance.concat(
+		createStepsInstanceFromDefinition( // recursive call
+		    step.steps, step.sample, step.step_count));
+	}
+    } // next step
+    return stepsInstance;
 }
 
 // Fisher-Yates (aka Knuth) array shuffling
