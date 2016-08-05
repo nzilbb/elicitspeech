@@ -4,7 +4,7 @@
     <property name="taskName" type="string">es-proto</property>
     <id>nzilbb.elicitspeech.linda.esproto</id>
     <name>LInDA Español</name>
-    <version>1.40</version>
+    <version>1.50</version>
     <publisher>Robert Fromont</publisher>
     <url>https://linda.canterbury.ac.nz</url>
     <description>Protocolo LInDA para grabación del Español</description>
