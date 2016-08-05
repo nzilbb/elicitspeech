@@ -1019,8 +1019,7 @@ function shuffle(array) {
   return array;
 }
 
-function downloadStepImage(s) {
-	var step = settings.steps[s];
+function downloadStepImage(step) {
     var f = Titanium.Filesystem.getFile(Ti.Filesystem.getApplicationDataDirectory(), step.image);
 	Ti.API.log("file: " + f.name + " " + f.exists());
     if (f.exists()) {
@@ -1037,12 +1036,12 @@ function downloadStepImage(s) {
 	            imagesDownloaded++;
 	       } else {
 	        Ti.API.log("ERROR downloading image: " + c.status);
-	        downloadStepImage(s); // keep trying
+	        downloadStepImage(step); // keep trying
 	       }
 	    };
 	    c.error = function(e) { 
 	        Ti.API.log("ERROR downloading image: " + e.error);
-	        downloadStepImage(s); // keep trying
+	        downloadStepImage(step); // keep trying
 	    };
 	    c.open('GET', settings.imageBaseUrl + step.image);
 		c.send();
@@ -1087,10 +1086,12 @@ function downloadDefinition() {
 				Ti.API.info("Looking for images...");
 				imagesToDownload = 0;
 				imagesDownloaded = 0;
-				for (s in data.model.steps) {
-					if (data.model.steps[s].image) {
+				var flatStepsList = allSteps(data.model.steps);
+			    for (s in flatStepsList) {
+					var step = flatStepsList[s];
+					if (step.image) {
 						imagesToDownload++;
-						downloadStepImage(s);
+						downloadStepImage(step);
 					}
 				}				
 				Ti.API.info("ensure all images are downloaded");
@@ -1111,6 +1112,18 @@ function downloadDefinition() {
 		loadSettings();
 		startSession();
 	}
+}
+
+// recursively return all steps
+function allSteps(steps) {
+    var list = [];
+    for (s in steps) {
+		list.push(steps[s]);
+		if (steps[s].steps) {
+		    list = list.concat(allSteps(steps[s].steps));
+		}
+    } // next step
+    return list;
 }
 /*
 try {
