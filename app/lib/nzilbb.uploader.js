@@ -5,6 +5,7 @@ var settings = null;
 var directory = null;
 var retryFrequency = 30000;
 var timeout = null;
+var httpAuthorization = null;
 
 function getParticipantId(seriesDirectory) {
 	Ti.API.log("uploader: getParticipantId: " + seriesDirectory.name);
@@ -32,6 +33,7 @@ function getParticipantId(seriesDirectory) {
 			};
 			Ti.API.info('uploader: requesting new participant ID...');
 			xhr.open("POST", settings.newParticipantUrl);
+			if (httpAuthorization) xhr.setRequestHeader("Authorization", httpAuthorization);
 			xhr.send(participantAttributes);			
 		} // try to generate an ID		
 	}
@@ -120,6 +122,7 @@ function doNextUpload() {
 		    });
 		    upload.request.transcriptName = upload.transcriptName;
 			upload.request.open('POST', settings.uploadUrl);
+			if (httpAuthorization) upload.request.setRequestHeader("Authorization", httpAuthorization);
 			upload.request.send(upload.form);
 				
 			Ti.API.log("uploader: request sent");
@@ -212,8 +215,9 @@ exports.prod = function(transcriptName, fd) {
 };
 
 // initialise the uploader
-exports.initialise = function(settingsFromInitialiser, workingDirectory, progressCallback) {
+exports.initialise = function(settingsFromInitialiser, workingDirectory, progressCallback, httpAuth) {
 	exports.initialised = true;
+	httpAuthorization = httpAuth;
 	exports.uploadProgress = progressCallback;
 	settings = settingsFromInitialiser;
 	directory = workingDirectory;

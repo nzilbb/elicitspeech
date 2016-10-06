@@ -12,6 +12,7 @@ var steps = [
 var uploader = require("nzilbb.uploader");
 var lastUploaderStatus = "";
 var indexLength = 2;
+var httpAuthorization = "";
 
 var imagesToDownload = 0;
 var imagesDownloaded = 0;
@@ -93,6 +94,7 @@ function generateConsentPdf(sig) {
 		};
 	// Prepare the connection.
 	client.open("GET", url);
+	if (httpAuthorization) client.setRequestHeader("Authorization", httpAuthorization);
 	client.file = Ti.Filesystem.getFile(Ti.Filesystem.getApplicationDataDirectory(), series, taskName + "-consent.pdf");
 	// Send the request.
 	client.send();				
@@ -110,24 +112,33 @@ function generateConsentHtml(sig) {
 	createParticipantForm();				
 }
 function getNewParticipantId(participantAttributes) {
-	var xhr = Titanium.Network.createHTTPClient();
-	xhr.onload = function(e) {
-	   	var data = JSON.parse(this.responseText);
-	   	participantAttributes.id = data.model.name;
+	if ($.txtUsername.value) { // their user ID is there participant ID
+	   	participantAttributes.id = $.txtUsername.value;
 	   	
-    	Ti.API.info("participant ID "+participantAttributes.id);
+    	Ti.API.info("participant ID is User ID "+participantAttributes.id);
 		// save the attributes to a file
 		var participantFile = Ti.Filesystem.getFile(Ti.Filesystem.getApplicationDataDirectory(), series, "participant.json");
 		participantFile.write(JSON.stringify(participantAttributes));
-	};
-	xhr.onerror = function(e) {
-	   	Ti.API.debug("ERROR:  " + e.error);
-	   	// could not get ID, continue anyway...
-	};
-	Ti.API.info('getting new participant ID...');
-	xhr.open("POST", settings.newParticipantUrl);
-	xhr.send(participantAttributes);
-	
+	} else {
+		var xhr = Titanium.Network.createHTTPClient();
+		xhr.onload = function(e) {
+		   	var data = JSON.parse(this.responseText);
+		   	participantAttributes.id = data.model.name;
+		   	
+	    	Ti.API.info("participant ID "+participantAttributes.id);
+			// save the attributes to a file
+			var participantFile = Ti.Filesystem.getFile(Ti.Filesystem.getApplicationDataDirectory(), series, "participant.json");
+			participantFile.write(JSON.stringify(participantAttributes));
+		};
+		xhr.onerror = function(e) {
+		   	Ti.API.debug("ERROR:  " + e.error);
+		   	// could not get ID, continue anyway...
+		};
+		Ti.API.info('getting new participant ID...');
+		xhr.open("POST", settings.newParticipantUrl);
+		if (httpAuthorization) xhr.setRequestHeader("Authorization", httpAuthorization);
+		xhr.send(participantAttributes);
+	}	
 	// don't wait for that request, just press on...
 	startNextStep();
 }
@@ -228,6 +239,11 @@ function deferredOnNext(e) {
 }
 
 function onNext() {
+
+	if ($.login.visible) {
+		downloadDefinition();
+		return; 
+	}
 	
 	if ($.btnNext.title == "Try Again"
 	|| $.btnNext.title == noTags(settings.resources.startAgain)) {
@@ -360,7 +376,8 @@ function createParticipantForm()
 	$.txtSignature.blur(); // hides the soft keyboard if visible	
 	$.pbOverall.value = 0;
 	$.pbOverall.max = steps.length;
-	if (settings.participantFields.length == 0)
+	if (settings.participantFields.length == 0 // no participant fields defined
+		|| $.txtUsername.value) // or they've logged in with a user ID
 	{
 		$.participantForm.hide();	
 		$.participantForm.visible = false;
@@ -573,8 +590,7 @@ function createParticipantForm()
 function newParticipant()
 {
 	Ti.API.info("newParticipant " + $.participantForm.visible);
-	if ($.participantForm.visible)
-	{ // validate form
+	if ($.participantForm.visible) { // validate form
 		var provisionalAttributes = {};
 		Ti.API.info("validating...");
 		for (f in settings.participantFields)
@@ -956,9 +972,6 @@ function loadSettings() {
 		$.btnNext.title = noTags(settings.resources.next);
 		$.lblSignature.text = noTags(settings.resources.pleaseEnterYourNameHere);
 		$.aiRecording.message = noTags(settings.resources.recording);
-		if (!uploader.initialised) {
-			uploader.initialise(settings, Ti.Filesystem.getApplicationDataDirectory(), uploadsProgress);
-		}
 	} else {
 		Ti.API.info('No internet, and no saved settings. Nothing to do.');	
 		$.lblTitle.text = "Please ensure you're connected to the internet the first time you run this app";			
@@ -1044,16 +1057,33 @@ function downloadStepImage(step) {
 	        downloadStepImage(step); // keep trying
 	    };
 	    c.open('GET', settings.imageBaseUrl + step.image);
+		if (httpAuthorization) c.setRequestHeader("Authorization", httpAuthorization);
 		c.send();
 	}   	
 }
 
+function loginForm() {
+	$.participantForm.hide();
+	$.lblPrompt.hide();
+	$.htmlPreamble.hide();
+	$.consent.hide();
+	$.btnNext.show();
+	Ti.API.info("login form...");
+	if ($.txtUsername.value) {
+		$.lblLoginPrompt.text = "Please try again";
+	}
+	$.login.show();
+}
+
 function downloadDefinition() {
 	// initial state of UI
+	$.btnNext.hide();
 	$.aiRecording.hide();
 	$.lblSignature.hide();
 	$.txtSignature.hide();
 	$.btnNext.hide();
+	$.login.hide();
+	$.consent.show();
 	
 	// download steps
 	try {
@@ -1096,16 +1126,35 @@ function downloadDefinition() {
 				}				
 				Ti.API.info("ensure all images are downloaded");
 				waitForImages();
+				
+				// start uploader
+				if (!uploader.initialised) {
+					uploader.initialise(settings, Ti.Filesystem.getApplicationDataDirectory(), uploadsProgress, httpAuthorization);
+				}
 			}		
 		};
 		xhr.onerror = function(e) {
-			// cannot load from the internet, so use settings from last time
-			Ti.API.info("settings failed to load: " + e.error);
-			loadSettings();
-			startSession();
+			// cannot load from the internet,
+			if (this.status == 401) { // forbidden
+				// ask for username/password
+				Ti.API.info("authentication required: " + this.statusText + " - " + e.error);
+				loginForm();
+			} else { // probably just not connected to the internet
+				// use settings from last time
+				Ti.API.info("settings failed to load: " + e.error + " status " + this.status + " " + this.statusText);
+				loadSettings();
+				startSession();
+			}
 		};
 		Ti.API.info('getting prompts...');
 		xhr.open("GET", startUrl);
+		if ($.txtUsername.value) {
+			Ti.API.info("using authentication");
+			httpAuthorization = "Basic "+Titanium.Utils.base64encode($.txtUsername.value+':'+$.txtPassword.value);
+			xhr.setRequestHeader("Authorization", httpAuthorization);
+		} else {
+			authorization = null;
+		}
 		xhr.send();
 	} catch (x) {
 		Ti.API.error('Failed to get prompts: ' + x);

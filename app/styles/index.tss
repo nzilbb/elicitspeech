@@ -70,7 +70,7 @@
 	height: "6%",
 	left: "50%",
 	width: "50%",
-	borderStyle: Ti.UI.INPUT_BORDERSTYLE_ROUNDED,
+	borderStyle: Titanium.UI.INPUT_BORDERSTYLE_ROUNDED,
 	borderWidth: 2,
   	borderColor: '#bbb',
   	borderRadius: 5,
@@ -116,4 +116,66 @@
 	width: "90%",
 	height: "10%",
 	top: "90%"
+}
+"#login": {
+	top: "5%",
+	width: "100%",
+	height: "70%"
+}
+"#loginLogo": {
+	top: "5%",
+	height: "40%"	
+}
+"#lblLoginPrompt": {
+	top: "50%",
+	height: "6%",
+	left: "0%",
+	width: "100%",
+	font: { fontSize: 24, fontWeight: "bold" },
+	textAlign: Titanium.UI.TEXT_ALIGNMENT_CENTER,
+	verticalAlign: Titanium.UI.TEXT_VERTICAL_ALIGNMENT_CENTER
+}
+"#lblUsername": {
+	top: "60%",
+	height: "6%",
+	left: "0%",
+	width: "100%",
+	textAlign: Titanium.UI.TEXT_ALIGNMENT_CENTER,
+	verticalAlign: Titanium.UI.TEXT_VERTICAL_ALIGNMENT_CENTER
+}
+"#txtUsername": {
+	top: "70%",
+	height: "6%",
+	left: "5%",
+	width: "90%",
+	autocapitalization: Titanium.UI.TEXT_AUTOCAPITALIZATION_NONE,
+	autocorrect: false,
+	textAlign: Titanium.UI.TEXT_ALIGNMENT_CENTER,
+	borderStyle: Titanium.UI.INPUT_BORDERSTYLE_ROUNDED,
+	borderWidth: 2,
+  	borderColor: '#bbb',
+  	borderRadius: 5,
+	color: "#000000",
+}
+"#lblPassword": {
+	top: "80%",
+	height: "6%",
+	left: "0%",
+	width: "100%",
+	textAlign: Titanium.UI.TEXT_ALIGNMENT_CENTER,
+	verticalAlign: Titanium.UI.TEXT_VERTICAL_ALIGNMENT_CENTER
+}
+"#txtPassword": {
+	top: "90%",
+	height: "6%",
+	left: "5%",
+	width: "90%",
+	autocapitalization: Titanium.UI.TEXT_AUTOCAPITALIZATION_NONE,
+	textAlign: Titanium.UI.TEXT_ALIGNMENT_CENTER,
+	passwordMask: true,
+	borderStyle: Titanium.UI.INPUT_BORDERSTYLE_ROUNDED,
+	borderWidth: 2,
+  	borderColor: '#bbb',
+  	borderRadius: 5,
+	color: "#000000",
 }

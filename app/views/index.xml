@@ -1,22 +1,30 @@
 <Alloy>
 	<Window class="container">
 		<ScrollView id="scrollview" scrollType="vertical">
-		<Label id="lblTitle"></Label>
-		<WebView id="lblPrompt"></WebView>
-		<Label id="lblTranscript"></Label>
-		<ImageView id="image"></ImageView>
-		<VideoPlayer id="video" onComplete="videoFinished"></VideoPlayer>
-		<ScrollView id="participantForm" scrollType="vertical"></ScrollView>
-		<WebView id="htmlPreamble"></WebView>
-		<View id="consent">
-			<WebView id="htmlConsent"></WebView>
-			<Label id="lblSignature"></Label>
-			<TextField id="txtSignature"></TextField>
-		</View>
-		<ActivityIndicator id="aiRecording" message=""></ActivityIndicator>
-		<Button id="btnNext" onClick="deferredOnNext">Next</Button>
-		<Label id="lblUpload"></Label>
-		<ProgressBar id="pbOverall" message="Overall Progress" onClick="onProgressBar"></ProgressBar>
+			<Label id="lblTitle"></Label>
+			<WebView id="lblPrompt"></WebView>
+			<Label id="lblTranscript"></Label>
+			<ImageView id="image"></ImageView>
+			<VideoPlayer id="video" onComplete="videoFinished"></VideoPlayer>
+			<ScrollView id="participantForm" scrollType="vertical"></ScrollView>
+			<WebView id="htmlPreamble"></WebView>
+			<View id="login">
+				<ImageView id="loginLogo"image="/images/login.png"></ImageView>
+				<Label id="lblLoginPrompt"></Label>
+				<Label id="lblUsername">ID:</Label>
+				<TextField id="txtUsername"></TextField>
+				<Label id="lblPassword">Password:</Label>
+				<TextField id="txtPassword"></TextField>
+			</View>
+			<View id="consent">
+				<WebView id="htmlConsent"></WebView>
+				<Label id="lblSignature"></Label>
+				<TextField id="txtSignature"></TextField>
+			</View>
+			<ActivityIndicator id="aiRecording" message=""></ActivityIndicator>
+			<Button id="btnNext" onClick="deferredOnNext">Next</Button>
+			<Label id="lblUpload"></Label>
+			<ProgressBar id="pbOverall" message="Overall Progress" onClick="onProgressBar"></ProgressBar>
 		</ScrollView>
 	</Window>
 </Alloy>
