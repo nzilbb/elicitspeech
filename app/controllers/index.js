@@ -9,6 +9,9 @@ var steps = [
 	}
 ];
 
+var securely = require('bencoding.securely'); // https://github.com/benbahrenburg/Securely
+var secureProperties = securely.createProperties({});
+
 var uploader = require("nzilbb.uploader");
 var lastUploaderStatus = "";
 var indexLength = 2;
@@ -1085,6 +1088,12 @@ function downloadDefinition() {
 	$.login.hide();
 	$.consent.show();
 	
+	if (!$.txtUsername.value) {
+		// are there stored credentials?
+		$.txtUsername.value = secureProperties.getString("username");
+		$.txtPassword.value = secureProperties.getString("password");
+	}
+	
 	// download steps
 	try {
 		Ti.API.info("Titanium.Network.createHTTPClient");
@@ -1092,6 +1101,12 @@ function downloadDefinition() {
 		Ti.API.info("...");
 		xhr.onload = function(e) {
 			Ti.API.info("onload");
+			// if they used a username
+			if ($.txtUsername.value) {
+				// save the credentials
+				secureProperties.setString("username", $.txtUsername.value);
+				secureProperties.setString("password", $.txtPassword.value);
+			}
 			var data = JSON.parse(this.responseText);
 			if (data.errors.length) {
 				// there was a problem	
