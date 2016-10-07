@@ -69,13 +69,14 @@ function timerTick() {
 }
 
 function setPrompt(prompt) {
-	$.lblPrompt.html = "";
-	if (prompt.trim() != "") {
-		appendPrompt(prompt);
-	}
+	$.lblPrompt.html = "<div style='text-align: center; font-size: 24pt; font-family: sans-serif;'>"+(prompt||"")+"</div>";
 }
 function appendPrompt(prompt) {
-	$.lblPrompt.html = "<div style='text-align: center; font-size: 24pt; font-family: sans-serif;'>"+prompt+"</div>";
+	if (steps.length > currentStep && steps[currentStep].prompt) {
+		setPrompt(steps[currentStep].prompt + prompt);
+	} else {
+		setPrompt(prompt);
+	}
 }
 
 function generateConsentPdf(sig) {
@@ -851,7 +852,7 @@ function finished()
 	$.image.top = "40%";
 	$.image.height = "35%";
 	if (participantAttributes.id) {
-		appendPrompt("<br><br>"+settings.resources.yourParticipantIdIs+"<br>"+participantAttributes.id);
+		appendPrompt(settings.resources.yourParticipantIdIs+"\n"+participantAttributes.id);
 	}	    	
     Ti.API.log("finished - hiding next button");
     $.aiRecording.hide();
