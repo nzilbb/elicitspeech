@@ -857,7 +857,8 @@ function finished()
     $.aiRecording.hide();
     
 	$.btnNext.title = noTags(settings.resources.startAgain);
-    $.btnNext.show();
+	// delay showing the "start again" button - in general they won't do this anyway, to it may be confusing
+    setTimeout(function() { $.btnNext.show(); }, 10000); 
     
     // TODO open consent form 	
 }
