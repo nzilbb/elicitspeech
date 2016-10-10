@@ -68,8 +68,27 @@ function timerTick() {
 	}
 }
 
+function isTablet() {
+	/*
+		Returns Boolean, true = device is a tablet
+	*/
+	var diag = 8;
+	var osname = Ti.Platform.osname;
+	switch(osname) {
+		case 'ipad':
+			return true;
+		case 'android':
+			var dpi = Ti.Platform.displayCaps.dpi;
+			var w = Ti.Platform.displayCaps.platformWidth / dpi;
+			var h = Ti.Platform.displayCaps.platformHeight / dpi;
+			return (Math.sqrt(w*w+h*h) >= diag) ? true : false;
+		default:
+			return false;
+	}
+}
+var tablet = isTablet();
 function setPrompt(prompt) {
-	$.lblPrompt.html = "<div style='text-align: center; font-size: 24pt; font-family: sans-serif;'>"+(prompt||"")+"</div>";
+	$.lblPrompt.html = "<div style='text-align: center; font-size: "+(tablet?"24":"16")+"pt; font-family: sans-serif;'>"+(prompt||"")+"</div>";
 }
 function appendPrompt(prompt) {
 	if (steps.length > currentStep && steps[currentStep].prompt) {
@@ -208,7 +227,7 @@ function uploadFile(file) {
 	+ "appDevice="+Titanium.Platform.model+"\r\n"
 	+ steps[currentStep].tags + "\r\n"
 	// prompt as comment
-	+ "{" + noTags(steps[currentStep].prompt) + "} "
+	+ "{" + noTags(steps[currentStep].prompt).replace(/\n/g," ") + "} "
 	// transcript 
 	+ steps[currentStep].transcript;
 	var fTranscript = Ti.Filesystem.getFile(Ti.Filesystem.getApplicationDataDirectory(), series, transcriptName);
@@ -851,7 +870,7 @@ function finished()
 	$.video.height = "35%";
 	$.image.top = "40%";
 	$.image.height = "35%";
-	if (participantAttributes.id) {
+	if (participantAttributes.id && !$.txtUsername.value) {
 		appendPrompt(settings.resources.yourParticipantIdIs+"\n"+participantAttributes.id);
 	}	    	
     Ti.API.log("finished - hiding next button");
@@ -889,6 +908,10 @@ function startRecording()
 	{
 		recorder = require("nzilbb.iosaudiorecorder");
 		Ti.API.log("iOS recorder => " + recorder);
+		
+		// start a dummy recording, to ensure permission is acquired before we really start recording
+//		startRecording();
+//		setTimeout(function() { stopRecording(); audioFile.deleteFile(); }, 500); 
 	}
 	catch (x)
 	{ // Android - use androidaudiorecorder instead

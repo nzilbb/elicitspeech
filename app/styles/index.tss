@@ -8,7 +8,10 @@
 	width: "90%",
 	color: "black",
 	top: "2%",
-	font: { fontSize: 20 }
+	font: { fontSize: 16 }
+},
+"#lblTitle[formFactor=handheld]": {
+	font: { fontSize: 12 }
 },
 "#lblPrompt": {
 	textAlign: "center",
@@ -16,7 +19,9 @@
 	width: "90%",
 	color: "black",
 	top: "5%",
-	font: { fontSize: 24 }
+	font: { fontSize: 24 },
+	enableZoomControls: false,
+	scalesPageToFit: false
 },
 
 "#lblTranscript": {
@@ -95,7 +100,7 @@
 	borderWidth: 2,
 	borderColor: "black",
 	color: "black",
-	borderRadius: 20,
+	borderRadius: 10,
 	height: "5%",
 	width: "40%",
 	top: "80%",
@@ -109,7 +114,10 @@
 	top: "85%",
 	textAlign: "center",
 	color: "black",
-	font: { fontSize: 24 }
+	font: { fontSize: 20 }
+},
+"#lblUpload[formFactor=handheld]": {
+	font: { fontSize: 16 }
 },
 
 "#pbOverall": {

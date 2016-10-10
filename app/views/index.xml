@@ -9,7 +9,7 @@
 			<ScrollView id="participantForm" scrollType="vertical"></ScrollView>
 			<WebView id="htmlPreamble"></WebView>
 			<View id="login">
-				<ImageView id="loginLogo"image="/images/login.png"></ImageView>
+				<ImageView id="loginLogo" image="/images/login.png"></ImageView>
 				<Label id="lblLoginPrompt"></Label>
 				<Label id="lblUsername">ID:</Label>
 				<TextField id="txtUsername"></TextField>
