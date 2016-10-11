@@ -107,6 +107,13 @@
 	backgroundColor: "#EEEEEE",
 	font : { fontSize: 24 }
 },
+"#lblCountDown": {
+	height: "5%",
+	width: "40%",
+	top: "80%",
+	textAlign: "center",
+	font : { fontSize: 32, fontWeight: "bold" }
+},
 
 "#lblUpload": {
 	width: "95%",

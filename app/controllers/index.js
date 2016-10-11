@@ -56,12 +56,13 @@ function killTimer() {
 function timerTick() {
 	var now = new Date().getTime();
 	if (countdownDisplay) {
-		var secondsLeft = ""+(Math.floor((countdownEnd - now) / 1000) + 1);
 		$.lblPrompt.top = "5%";
 		$.lblPrompt.height = "70%";
 		$.lblPrompt.show();	
-		setPrompt(settings.resources.countdownMessage + "<br>" + secondsLeft);
-	}	
+		setPrompt(settings.resources.countdownMessage);
+	}
+	var secondsLeft = ""+(Math.floor((countdownEnd - now) / 1000) + 1);
+	$.lblCountDown.text = secondsLeft;
 	if (now >= countdownEnd) {
 		killTimer();
 		countdownCall();
@@ -822,8 +823,14 @@ function showCurrentPhrase() {
 	    	startTimer(steps[currentStep].max_seconds, finishLastStep);
 	    } 	
 	    if (currentStep < steps.length - 1) {
-	    	 // show next button only if there's a next step 
-	    	showNextButton();
+	    	// show next button only if there's a next step
+	    	if (steps[currentStep].suppress_next) {
+	    	 	hideNextButton();
+		    } else {
+	    	 	showNextButton();
+		    }
+	    } else {
+	    	$.lblCountDown.hide();
 	    }
 	}
 }
@@ -856,7 +863,12 @@ function clearPrompts() {
 	$.video.hide();	
 }
 function showNextButton() {
+	$.lblCountDown.hide();
 	setTimeout(function() { $.btnNext.show(); }, 1000); 	
+}
+function hideNextButton() {
+	$.lblCountDown.show();
+	$.btnNext.hide(); 	
 }
 
 function finished()
