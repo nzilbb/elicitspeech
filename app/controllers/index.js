@@ -1,7 +1,7 @@
 var settings = null;
 var taskName = Ti.App.Properties.getString("taskName");
 var startUrl = Ti.App.Properties.getString("startUrl") + taskName;
-var prompt = $.lblPrompt;
+var prompt = $.htmlPrompt;
 
 var steps = [
 	{
@@ -91,12 +91,13 @@ function isTablet() {
 	}
 }
 var tablet = isTablet();
-function setPrompt(prompt) {
+function setPrompt(p) {
 	if (prompt == $.htmlPrompt) {
-		$.htmlPrompt.html = "<div style='text-align: center; font-size: "+(tablet?"24":"16")+"pt; font-family: sans-serif;'>"+(prompt||"")+"</div>";
+		Ti.API.log("HTML prompt: " + p);
+		$.htmlPrompt.html = "<div style='text-align: center; font-size: "+(tablet?"24":"16")+"pt; font-family: sans-serif;'>"+(p||"")+"</div>";
 		$.htmlPrompt.show();
 	} else {
-		$.lblPrompt.text = noTags(prompt);
+		$.lblPrompt.text = noTags(p);
 		$.lblPrompt.show();
 	}
 }
@@ -310,6 +311,7 @@ function onNext() {
 
 // starting point for an elicitation session
 function startSession() {
+	if (!settings) return;
 	// ensure any previous participants are forgotten
 	var now = new Date();
     series = now.toISOString().substring(0,16).replace(/[-:]/g,"").replace("T","-");
@@ -332,12 +334,12 @@ function startSession() {
 	if (settings) {
 		$.btnNext.title = noTags(settings.resources.next);
 		$.pbOverall.message = noTags(settings.resources.overallProgess);
+		$.aiRecording.message = noTags(settings.resources.recording);
 	}
 	$.lblUpload.text = "";
 	clearPrompts();
 	setPrompt("");
 	$.aiRecording.hide();
-	$.aiRecording.message = noTags(settings.resources.recording);
 	$.lblUpload.show();
 	showNextButton();
     
@@ -347,7 +349,7 @@ function startSession() {
 }
 
 function showPreamble() {
-	if (settings.preamble) {
+	if (settings && settings.preamble) {
 		$.htmlPreamble.html = settings.preamble;
 		$.htmlPreamble.show();
 		$.consent.hide();
@@ -359,7 +361,7 @@ function showPreamble() {
 
 function showConsent() {
 	$.htmlPreamble.hide();
-	if (settings.consent) {		
+	if (settings && settings.consent) {		
 		$.htmlConsent.html = settings.consent;
 		consentShown = true;
 		$.consent.show();
@@ -869,7 +871,7 @@ function videoFinished() {
 }
 function clearPrompts() {
 	$.lblTitle.text = "";
-	setPrompt(settings.resources.countdownMessage + "<br>");
+	setPrompt(settings?settings.resources.countdownMessage + "<br>":"Please Wait...");
 	$.lblTranscript.text = "";
 	$.image.hide();
 	$.video.hide();	
