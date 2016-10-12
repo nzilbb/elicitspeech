@@ -1,6 +1,7 @@
 var settings = null;
 var taskName = Ti.App.Properties.getString("taskName");
 var startUrl = Ti.App.Properties.getString("startUrl") + taskName;
+var prompt = $.lblPrompt;
 
 var steps = [
 	{
@@ -56,15 +57,17 @@ function killTimer() {
 function timerTick() {
 	var now = new Date().getTime();
 	if (countdownDisplay) {
-		$.lblPrompt.top = "5%";
-		$.lblPrompt.height = "70%";
-		$.lblPrompt.show();	
+		prompt.top = "5%";
+		prompt.height = "70%";
+		prompt.show();	
 		setPrompt(settings.resources.countdownMessage);
+		$.lblCountDown.show();
 	}
 	var secondsLeft = ""+(Math.floor((countdownEnd - now) / 1000) + 1);
 	$.lblCountDown.text = secondsLeft;
 	if (now >= countdownEnd) {
 		killTimer();
+		$.lblCountDown.hide();
 		countdownCall();
 	}
 }
@@ -89,7 +92,13 @@ function isTablet() {
 }
 var tablet = isTablet();
 function setPrompt(prompt) {
-	$.lblPrompt.html = "<div style='text-align: center; font-size: "+(tablet?"24":"16")+"pt; font-family: sans-serif;'>"+(prompt||"")+"</div>";
+	if (prompt == $.htmlPrompt) {
+		$.htmlPrompt.html = "<div style='text-align: center; font-size: "+(tablet?"24":"16")+"pt; font-family: sans-serif;'>"+(prompt||"")+"</div>";
+		$.htmlPrompt.show();
+	} else {
+		$.lblPrompt.text = noTags(prompt);
+		$.lblPrompt.show();
+	}
 }
 function appendPrompt(prompt) {
 	if (steps.length > currentStep && steps[currentStep].prompt) {
@@ -329,6 +338,7 @@ function startSession() {
 	setPrompt("");
 	$.aiRecording.hide();
 	$.aiRecording.message = noTags(settings.resources.recording);
+	$.lblUpload.show();
 	showNextButton();
     
     Ti.API.info("show preamble");
@@ -779,11 +789,11 @@ function showCurrentPhrase() {
 	
 	var topSoFar = 5;
 	if (proportionPrompt) {
-		$.lblPrompt.top = ""+topSoFar+"%";
-		$.lblPrompt.height = ""+proportionPrompt+"%";
-		$.lblPrompt.show();	
+		prompt.top = ""+topSoFar+"%";
+		prompt.height = ""+proportionPrompt+"%";
+		prompt.show();	
 	} else {
-		$.lblPrompt.hide();
+		prompt.hide();
 	}	
 	topSoFar += proportionPrompt;
 	if (proportionTranscript) {
@@ -819,6 +829,7 @@ function showCurrentPhrase() {
 		if (currentStep < steps.length - 1 && steps[currentStep].record) {
 			// reveal we are recording	
 	    	$.aiRecording.show();
+			$.lblUpload.hide();
 	    	// and make sure they don't go over the max time
 	    	startTimer(steps[currentStep].max_seconds, finishLastStep);
 	    } 	
@@ -848,6 +859,7 @@ function videoFinished() {
 			 // reveal we are recording	
 	    	 Ti.API.log("VIDEO:...and show recording..."); 
 	    	 $.aiRecording.show();
+			 $.lblUpload.hide();
 			 // and make sure they don't go over the max time
 	    	 Ti.API.log("VIDEO:...and start max seconds timer..."); 
 			 startTimer(steps[currentStep].max_seconds, finishLastStep);
@@ -874,9 +886,9 @@ function hideNextButton() {
 function finished()
 {
 	// ensure the prompt is visible
-	$.lblPrompt.top = "5%";
-	$.lblPrompt.height = "35%";
-	$.lblPrompt.show();	
+	prompt.top = "5%";
+	prompt.height = "35%";
+	prompt.show();	
 	// ensure it doesn't cover up any final vide/image
 	$.video.top = "40%";
 	$.video.height = "35%";
@@ -887,6 +899,7 @@ function finished()
 	}	    	
     Ti.API.log("finished - hiding next button");
     $.aiRecording.hide();
+    $.lblUpload.show();
     
 	$.btnNext.title = noTags(settings.resources.startAgain);
 	// delay showing the "start again" button - in general they won't do this anyway, to it may be confusing
@@ -921,15 +934,16 @@ function startRecording()
 		recorder = require("nzilbb.iosaudiorecorder");
 		Ti.API.log("iOS recorder => " + recorder);
 		
-		// start a dummy recording, to ensure permission is acquired before we really start recording
-//		startRecording();
-//		setTimeout(function() { stopRecording(); audioFile.deleteFile(); }, 500); 
+		//Titanium.Media.audioSessionCategory = Ti.Media.AUDIO_SESSION_CATEGORY_RECORD;
+		//recorder = Titanium.Media.createAudioRecorder();
+		//recorder.format = Titanium.Media.AUDIO_FILEFORMAT_WAVE;
+		//recorder.compression = Titanium.Media.AUDIO_FORMAT_LINEAR_PCM;		
 	}
 	catch (x)
 	{ // Android - use androidaudiorecorder instead
 	    try
 	    { 
-			recorder = require('nz.ac.canterbury.nzilbb.androidaudiorecorder');
+			recorder = recorder || require('nz.ac.canterbury.nzilbb.androidaudiorecorder');
 			Ti.API.info("Android recorder => " + recorder);
 		}
 		catch (x2)
@@ -945,16 +959,23 @@ function startRecording()
 
 function stopRecording()
 {
-    $.aiRecording.hide(); 	
+    $.aiRecording.hide();
+    $.lblUpload.show();
+     	
 	Ti.API.info('stopRecording()');
-	audioFile = recorder.stop();
-	Ti.API.info('recorder stopped');
-	Ti.API.info('file: ' + audioFile);
-	if (!audioFile.name)
-	{
-		audioFile = Ti.Filesystem.getFile("/"+audioFile);
+	try {
+		audioFile = recorder.stop();
+		Ti.API.info('recorder stopped');
+		Ti.API.info('file: ' + audioFile);
+		if (!audioFile.name)
+		{
+			audioFile = Ti.Filesystem.getFile("/"+audioFile);
+		}
+		Ti.API.info('file: ' + audioFile.name + " " + audioFile.exists());
+	} catch (x) {
+		Ti.API.debug("could not stop recording: " + x);
+		throw x; 
 	}
-	Ti.API.info('file: ' + audioFile.name + " " + audioFile.exists());
 }
 
 
@@ -974,7 +995,15 @@ function playRecording()
 
 function noTags(html) {
 	if (!html) return "";
-	return html.replace(/<[^>]+>/g,"").trim();
+	return html
+		.replace(/<p>/g,"\n")
+		.replace(/<br>/g,"\n")
+		.replace(/<[^>]+>/g,"")
+		.replace(/&nbsp;/g," ")
+		.replace(/&quot;/g,"\"")
+		.replace(/&#39;/g,"'")
+		.replace(/ +/g," ")
+		.trim();
 }
 
 function zeropad(num, size) {
@@ -1105,6 +1134,7 @@ function downloadStepImage(step) {
 function loginForm() {
 	$.participantForm.hide();
 	$.lblPrompt.hide();
+	$.htmlPrompt.hide();
 	$.htmlPreamble.hide();
 	$.consent.hide();
 	$.btnNext.show();
@@ -1118,6 +1148,7 @@ function loginForm() {
 function downloadDefinition() {
 	// initial state of UI
 	$.btnNext.hide();
+	$.lblCountDown.hide();
 	$.aiRecording.hide();
 	$.lblSignature.hide();
 	$.txtSignature.hide();
@@ -1236,5 +1267,24 @@ try {
 
 downloadDefinition();
 
+
 $.index.open();
+
+if (Titanium.Platform.name == "iOS" || Titanium.Platform.name == "iPhone OS") {
+	// start a dummy recording, to ensure permission is acquired before we really start recording
+	startRecording();
+	setTimeout(function() { stopRecording(); audioFile.deleteFile(); }, 500); 
+} else {
+	//  disable HTML prompts, until we've tamed the Android WebView
+	prompt = $.lblPrompt;
+	
+	// request permission to record audio
+	Ti.Android.requestPermissions(["android.permission.RECORD_AUDIO"], function(e) {
+        if (e.success) {
+            Ti.API.info("Audio permission SUCCESS");
+        } else {
+            Ti.API.info("Audio permission ERROR: " + e.error);
+        }
+    });
+}
 

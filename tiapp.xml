@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ti:app xmlns:ti="http://ti.appcelerator.org">
-    <property name="startUrl" type="string">http://192.168.1.116:8080/labbcat/elicit/steps?task=</property>
-    <property name="taskName" type="string">NZE-wordlist</property>
-    <id>nzilbb.elicitspeech</id>
-    <name>ElicitSpeech</name>
-    <version>1.51</version>
+    <property name="startUrl" type="string">https://linda.canterbury.ac.nz/phoenix/elicit/steps?task=</property>
+    <property name="taskName" type="string">phoenix</property>
+    <id>nzilbb.elicitspeech.phoenix</id>
+    <name>Phoenix Task</name>
+    <version>1.533</version>
     <publisher>Robert Fromont</publisher>
     <url>https://linda.canterbury.ac.nz</url>
-    <description>Protocolo LInDA para grabación del Español</description>
-    <copyright>2015-2016 NZILBB</copyright>
+    <description>Phoenix Speech Task App</description>
+    <copyright>2016 NZILBB</copyright>
     <icon>appicon.png</icon>
     <fullscreen>false</fullscreen>
     <navbar-hidden>false</navbar-hidden>
@@ -56,9 +56,9 @@
     </mobileweb>
     <modules>
         <module platform="android">nz.ac.canterbury.nzilbb.androidaudiorecorder</module>
-        <module platform="iphone">nzilbb.iosaudiorecorder</module>
         <module platform="iphone">bencoding.securely</module>
         <module platform="android">bencoding.securely</module>
+        <module platform="iphone">nzilbb.iosaudiorecorder</module>
     </modules>
     <deployment-targets>
         <target device="android">true</target>
@@ -67,7 +67,7 @@
         <target device="iphone">true</target>
         <target device="mobileweb">false</target>
     </deployment-targets>
-    <sdk-version>5.1.2.GA</sdk-version>
+    <sdk-version>5.5.1.GA</sdk-version>
     <plugins>
         <plugin version="1.0">ti.alloy</plugin>
     </plugins>

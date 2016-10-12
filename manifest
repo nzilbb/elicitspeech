@@ -1,8 +1,8 @@
 #appname:AudioRecorder
 #publisher:Robert Fromont
-#url:http://www.nzilbb.canterbury.ac.nz
+#url:https://linda.canterbury.ac.nz
 #image:appicon.png
-#appid:nzilbb.elicitspeech
-#desc:Elicits speech, which is recorded and uploaded to a server for analysis.
+#appid:nzilbb.elicitspeech.phoenix
+#desc:Phoenix Speech Task App
 #type:ipad
 #guid:22b74ba6-718c-46b6-8347-e5e4fdb7e615

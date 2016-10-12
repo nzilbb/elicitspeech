@@ -7,11 +7,23 @@
 	height: "4%",
 	width: "90%",
 	color: "black",
+	backgroundColor: "white",
 	top: "2%",
 	font: { fontSize: 16 }
 },
 "#lblTitle[formFactor=handheld]": {
 	font: { fontSize: 12 }
+},
+"#htmlPrompt": {
+	textAlign: "center",
+	height: "35%",
+	width: "90%",
+	color: "black",
+	top: "5%",
+	font: { fontSize: 24 },
+	backgroundColor: "white",
+	enableZoomControls: false,
+//	scalesPageToFit: false
 },
 "#lblPrompt": {
 	textAlign: "center",
@@ -20,8 +32,7 @@
 	color: "black",
 	top: "5%",
 	font: { fontSize: 24 },
-	enableZoomControls: false,
-	scalesPageToFit: false
+	backgroundColor: "white",
 },
 
 "#lblTranscript": {
@@ -30,10 +41,12 @@
 	width: "90%",
 	color: "black",
 	top: "40%",
-	font: { fontSize: 32 }
+	font: { fontSize: 32 },
+	backgroundColor:"white"
 },
 "#image": {
 	textAlign: "center",
+	backgroundColor: "white",
 	height: "40%"
 },
 "#video": {
@@ -45,26 +58,31 @@
 
 "#participantForm": {
 	top: "5%",
+	backgroundColor: "white",
 	width: "90%",
 	height: "70%"
 }
 "#htmlPreamble": {
 	top: "5%",
+	backgroundColor: "white",
 	width: "90%",
 	height: "70%"
 }
 "#consent": {
 	top: "5%",
+	backgroundColor: "white",
 	width: "90%",
 	height: "70%"
 }
 "#htmlConsent": {
 	top: "0%",
+	backgroundColor: "white",
 	width: "100%",
 	height: "94%"
 }
 "#lblSignature": {
 	top: "94%",
+	backgroundColor: "white",
 	height: "6%",
 	left: "0%",
 	width: "50%",
@@ -72,6 +90,7 @@
 }
 "#txtSignature": {
 	top: "94%",
+	backgroundColor: "white",
 	height: "6%",
 	left: "50%",
 	width: "50%",
@@ -83,15 +102,15 @@
 }
 
 "#aiRecording": {
-	height: "5%",
 	top: "85%",
+	height: "5%",
+	backgroundColor: "white",
+	color: "black",
 	font : { fontSize: 16 }
 },
-
 "#aiRecording[platform=ios]": {
 	style: Titanium.UI.iPhone.ActivityIndicatorStyle.DARK	
 },
-
 "#aiRecording[platform=android]": {
 	style: Titanium.UI.ActivityIndicatorStyle.DARK	
 },
@@ -107,18 +126,32 @@
 	backgroundColor: "#EEEEEE",
 	font : { fontSize: 24 }
 },
+"#btnNext[platform=android]": {
+	height: Titanium.UI.SIZE,
+	top: "75%",
+},
 "#lblCountDown": {
 	height: "5%",
+	backgroundColor: "white",
+	color: "black",
 	width: "40%",
 	top: "80%",
 	textAlign: "center",
 	font : { fontSize: 32, fontWeight: "bold" }
 },
+"#lblCountDown[platform=android]": {
+	top: "75%",
+},
+"#lblCountDown[formFactor=handheld]": {
+	font: { fontSize: 28 }
+},
 
 "#lblUpload": {
-	width: "95%",
-	height: "5%",
 	top: "85%",
+	height: "5%",
+	width: "95%",
+	backgroundColor: "white",
+	color: "black",
 	textAlign: "center",
 	color: "black",
 	font: { fontSize: 20 }
@@ -129,16 +162,19 @@
 
 "#pbOverall": {
 	width: "90%",
+	backgroundColor: "white",
 	height: "10%",
 	top: "90%"
 }
 "#login": {
 	top: "5%",
+	backgroundColor: "white",
 	width: "100%",
 	height: "70%"
 }
 "#loginLogo": {
 	top: "5%",
+	backgroundColor: "white",
 	height: "40%"	
 }
 "#lblLoginPrompt": {
@@ -155,9 +191,14 @@
 	height: "6%",
 	left: "0%",
 	width: "100%",
+	color: "#000000",
 	textAlign: Titanium.UI.TEXT_ALIGNMENT_CENTER,
 	verticalAlign: Titanium.UI.TEXT_VERTICAL_ALIGNMENT_CENTER
 }
+"#lblUsername[platform=android]": {
+	top: 10,
+	height: Titanium.UI.SIZE,
+},
 "#txtUsername": {
 	top: "70%",
 	height: "6%",
@@ -172,14 +213,23 @@
   	borderRadius: 5,
 	color: "#000000",
 }
+"#txtUsername[platform=android]": {
+	top: 40,
+	height: Titanium.UI.SIZE
+},
 "#lblPassword": {
 	top: "80%",
 	height: "6%",
 	left: "0%",
 	width: "100%",
+	color: "#000000",
 	textAlign: Titanium.UI.TEXT_ALIGNMENT_CENTER,
 	verticalAlign: Titanium.UI.TEXT_VERTICAL_ALIGNMENT_CENTER
 }
+"#lblPassword[platform=android]": {
+	top: 100,
+	height: Titanium.UI.SIZE,
+},
 "#txtPassword": {
 	top: "90%",
 	height: "6%",
@@ -194,3 +244,10 @@
   	borderRadius: 5,
 	color: "#000000",
 }
+"#txtPassword[platform=android]": {
+	top: 130,
+	height: Titanium.UI.SIZE	
+},
+"#loginLogo[platform=android]": {
+	top: 170
+},
