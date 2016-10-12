@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ti:app xmlns:ti="http://ti.appcelerator.org">
-    <property name="startUrl" type="string">https://linda.canterbury.ac.nz/phoenix/elicit/steps?task=</property>
+    <property name="startUrl" type="string">https://127.0.0.1:8080/labbcat/elicit/steps?task=</property>
     <property name="taskName" type="string">phoenix</property>
     <id>nzilbb.elicitspeech.phoenix</id>
     <name>Phoenix Task</name>
