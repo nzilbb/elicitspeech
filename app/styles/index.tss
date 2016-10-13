@@ -1,6 +1,9 @@
 ".container": {
 	backgroundColor:"white"
 },
+"#scrollview": {
+	backgroundColor:"white"
+},
 
 "#lblTitle": {
 	textAlign: "center",
@@ -15,15 +18,13 @@
 	font: { fontSize: 12 }
 },
 "#htmlPrompt": {
-	textAlign: "center",
+	top: "5%",
 	height: "35%",
 	width: "90%",
 	color: "black",
-	top: "5%",
-	font: { fontSize: 24 },
 	backgroundColor: "white",
 	enableZoomControls: false,
-//	scalesPageToFit: false
+	scalesPageToFit: false
 },
 "#lblPrompt": {
 	textAlign: "center",

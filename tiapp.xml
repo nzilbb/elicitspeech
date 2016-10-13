@@ -4,7 +4,7 @@
     <property name="taskName" type="string">phoenix</property>
     <id>nzilbb.elicitspeech.phoenix</id>
     <name>Phoenix Task</name>
-    <version>1.533</version>
+    <version>1.54</version>
     <publisher>Robert Fromont</publisher>
     <url>https://linda.canterbury.ac.nz</url>
     <description>Phoenix Speech Task App</description>

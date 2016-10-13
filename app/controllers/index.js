@@ -1,7 +1,7 @@
 var settings = null;
 var taskName = Ti.App.Properties.getString("taskName");
 var startUrl = Ti.App.Properties.getString("startUrl") + taskName;
-var prompt = $.htmlPrompt;
+var prompt = (Titanium.Platform.name == "iOS" || Titanium.Platform.name == "iPhone OS")?$.htmlPrompt:$.lblPrompt;
 
 var steps = [
 	{
@@ -56,6 +56,8 @@ function killTimer() {
 }
 function timerTick() {
 	var now = new Date().getTime();
+	var secondsLeft = ""+(Math.floor((countdownEnd - now) / 1000) + 1);
+	$.lblCountDown.text = secondsLeft;
 	if (countdownDisplay) {
 		prompt.top = "5%";
 		prompt.height = "70%";
@@ -63,8 +65,6 @@ function timerTick() {
 		setPrompt(settings.resources.countdownMessage);
 		$.lblCountDown.show();
 	}
-	var secondsLeft = ""+(Math.floor((countdownEnd - now) / 1000) + 1);
-	$.lblCountDown.text = secondsLeft;
 	if (now >= countdownEnd) {
 		killTimer();
 		$.lblCountDown.hide();
@@ -94,12 +94,14 @@ var tablet = isTablet();
 function setPrompt(p) {
 	if (prompt == $.htmlPrompt) {
 		Ti.API.log("HTML prompt: " + p);
-		$.htmlPrompt.html = "<div style='text-align: center; font-size: "+(tablet?"24":"16")+"pt; font-family: sans-serif;'>"+(p||"")+"</div>";
-		$.htmlPrompt.show();
+		$.htmlPrompt.html = "<html><body style='height: 100%; vertical-align: middle;'>"
+		+"<div style='text-align: center; font-size: "+(tablet?"22":"14")+"pt; font-family: sans-serif; vertical-align:middle; height:100%;'>"
+		+(p||"")
+		+"</div></body></html>";
 	} else {
 		$.lblPrompt.text = noTags(p);
-		$.lblPrompt.show();
 	}
+	prompt.show();
 }
 function appendPrompt(prompt) {
 	if (steps.length > currentStep && steps[currentStep].prompt) {
@@ -881,6 +883,7 @@ function showNextButton() {
 	setTimeout(function() { $.btnNext.show(); }, 1000); 	
 }
 function hideNextButton() {
+	$.lblCountDown.text = "";
 	$.lblCountDown.show();
 	$.btnNext.hide(); 	
 }
@@ -1144,6 +1147,8 @@ function loginForm() {
 
 function downloadDefinition() {
 	// initial state of UI
+	$.lblPrompt.hide();
+	$.htmlPrompt.hide();
 	$.btnNext.hide();
 	$.lblCountDown.hide();
 	$.aiRecording.hide();
@@ -1264,7 +1269,6 @@ try {
 
 downloadDefinition();
 
-
 $.index.open();
 
 if (Titanium.Platform.name == "iOS" || Titanium.Platform.name == "iPhone OS") {
@@ -1276,9 +1280,6 @@ if (Titanium.Platform.name == "iOS" || Titanium.Platform.name == "iPhone OS") {
         }
     });
 } else {
-	//  disable HTML prompts, until we've tamed the Android WebView
-	prompt = $.lblPrompt;
-	
 	// request permission to record audio
 	Ti.Android.requestPermissions(["android.permission.RECORD_AUDIO"], function(e) {
         if (e.success) {
