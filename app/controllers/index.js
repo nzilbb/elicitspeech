@@ -935,11 +935,6 @@ function startRecording()
 	{
 		recorder = require("nzilbb.iosaudiorecorder");
 		Ti.API.log("iOS recorder => " + recorder);
-		
-		//Titanium.Media.audioSessionCategory = Ti.Media.AUDIO_SESSION_CATEGORY_RECORD;
-		//recorder = Titanium.Media.createAudioRecorder();
-		//recorder.format = Titanium.Media.AUDIO_FILEFORMAT_WAVE;
-		//recorder.compression = Titanium.Media.AUDIO_FORMAT_LINEAR_PCM;		
 	}
 	catch (x)
 	{ // Android - use androidaudiorecorder instead
@@ -1273,9 +1268,13 @@ downloadDefinition();
 $.index.open();
 
 if (Titanium.Platform.name == "iOS" || Titanium.Platform.name == "iPhone OS") {
-	// start a dummy recording, to ensure permission is acquired before we really start recording
-	startRecording();
-	setTimeout(function() { stopRecording(); audioFile.deleteFile(); }, 500); 
+	Titanium.Media.requestAudioPermissions(function(e) {
+        if (e.success) {
+            Ti.API.info("Audio permission SUCCESS");
+        } else {
+            Ti.API.info("Audio permission ERROR: " + e.error);
+        }
+    });
 } else {
 	//  disable HTML prompts, until we've tamed the Android WebView
 	prompt = $.lblPrompt;

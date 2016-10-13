@@ -37,6 +37,8 @@
                 <false/>
                 <key>UIStatusBarStyle</key>
                 <string>UIStatusBarStyleDefault</string>
+                <key>NSMicrophoneUsageDescription</key>
+                <string>This app records your voice and sends recordings to our secure server.</string>
             </dict>
         </plist>
     </ios>
