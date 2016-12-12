@@ -106,7 +106,8 @@
 	top: "85%",
 	height: "5%",
 	backgroundColor: "white",
-	color: "black",
+	color: "red",
+	indicatorColor: "red",
 	font : { fontSize: 16 }
 },
 "#aiRecording[platform=ios]": {
