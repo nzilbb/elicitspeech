@@ -316,8 +316,12 @@ function startSession() {
 	if (!settings) return;
 	// ensure any previous participants are forgotten
 	var now = new Date();
-    series = now.toISOString().substring(0,16).replace(/[-:]/g,"").replace("T","-");
-    // create a directory named after the series - this will be where all series-related files are kept until they're uploaded
+	series = zeropad(now.getFullYear(),4)
+		+ zeropad(now.getMonth()+1,2) // getMonth() is 0-based
+		+ zeropad(now.getDate(),2)
+		+ "-" + zeropad(now.getHours(),2)
+		+ zeropad(now.getMinutes(),2);
+	// create a directory named after the series - this will be where all series-related files are kept until they're uploaded
     Ti.Filesystem.getFile(Ti.Filesystem.getApplicationDataDirectory(), series).createDirectory();
     Ti.API.log(Ti.Filesystem.getApplicationDataDirectory());
     Ti.API.log(series);
