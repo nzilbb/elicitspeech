@@ -87,22 +87,59 @@ function doNextUpload() {
 		    	onload: function(e) {
 		    		Ti.API.log("uploader: onload");
 					var transcriptName = e.source.transcriptName;
-					upload = uploads[transcriptName]; 
-					upload.percentComplete = 100;
-					upload.status = "complete";
-					exports.uploadProgress(uploads);
-					// remove it from the queue
-					uploadQueue.pop();
-					// and delete the files
-					upload.transcriptFile.deleteFile();
-					upload.form.uploadfile1_0.deleteFile();
-					upload.form.uploadmedia1.deleteFile();
-					if (upload.form.doc) {
-						upload.form.doc.deleteFile();
-					}
-					
-					// start next one, if any
-					timeout = setTimeout(doNextUpload, 50);	    		
+				    var verifyRequest = Titanium.Network.createHTTPClient({
+				    	onload: function(e) {
+				    		try {
+							   	var data = JSON.parse(this.responseText);
+							   	if (data.model.ag_id) {	
+									Ti.API.log('uploader: verified: ag_id=' + data.model.ag_id);
+									var transcriptName = e.source.transcriptName;
+									upload = uploads[transcriptName]; 
+									upload.percentComplete = 100;
+									upload.status = "complete";
+									exports.uploadProgress(uploads);
+									// remove it from the queue
+									uploadQueue.pop();
+									// and delete the files
+									upload.transcriptFile.deleteFile();
+									upload.form.uploadfile1_0.deleteFile();
+									upload.form.uploadmedia1.deleteFile();
+									if (upload.form.doc) {
+										upload.form.doc.deleteFile();
+									}
+									
+									// start next one, if any
+									timeout = setTimeout(doNextUpload, 50);
+								} else {
+									Ti.API.log('uploader: not verified: ' + data.errors[0]);
+									var transcriptName = e.source.transcriptName;
+									uploads[transcriptName].status = "verification failed";
+									exports.uploadProgress(uploads, (e.error||"Could not upload.") + " Will try again...");
+									timeout = setTimeout(doNextUpload, retryFrequency);
+								}
+							} catch (x) {
+								Ti.API.log('uploader: invalid verify response: ' + x);
+								Ti.API.log(this.responseText);
+								var transcriptName = e.source.transcriptName;
+								uploads[transcriptName].status = "verification failed";
+								exports.uploadProgress(uploads, (e.error||"Could not upload.") + " Will try again...");
+								timeout = setTimeout(doNextUpload, retryFrequency);
+							}	    		
+				    	},
+				    	onerror : function(e) {
+							Ti.API.log('uploader: verify: ' + e.error);
+							Ti.API.log(this.responseText);
+							var transcriptName = e.source.transcriptName;
+							uploads[transcriptName].status = "verification failed";
+							exports.uploadProgress(uploads, (e.error||"Could not upload.") + " Will try again...");
+							timeout = setTimeout(doNextUpload, retryFrequency);
+				    	}
+				    });
+				    verifyRequest.transcriptName = transcriptName;
+					verifyRequest.open('GET', settings.verifyUrl + "?transcript_id=" + sUploadedName);
+					if (httpAuthorization) verifyRequest.setRequestHeader("Authorization", httpAuthorization);
+					Ti.API.log("uploaser: verifying " + sUploadedName);
+					verifyRequest.send();			
 		    	},
 		    	onerror : function(e) {
 					Ti.API.log('uploader: ' + e.error);
@@ -141,7 +178,9 @@ function doNextUpload() {
 
 // checks the filesystem for previously unseen transcripts
 function scanForUploads() {
-	Ti.API.log("uplaoder: Scanning for transcripts");
+	var report = "";
+	Ti.API.log("uploader: Scanning for transcripts");
+	report += "\nuploader: Scanning for transcripts";
 	// each subdirectory is a series
 	var files = Ti.Filesystem.getFile(directory).getDirectoryListing();
 	for (f in files) {
@@ -150,6 +189,7 @@ function scanForUploads() {
 			// check participant file exists
 			if (!Ti.Filesystem.getFile(directory, files[f], "participant.json").exists()) {
 				Ti.API.log("uploader: skipping " + files[f] + " - there's no participant file");
+				report += "\nuploader: skipping " + files[f] + " - there's no participant file";
 				//file.deleteDirectory(true);
 			} else {
 				// get files in the series directory
@@ -160,6 +200,7 @@ function scanForUploads() {
 					var fileName = seriesFiles[t];
 					if (fileName.match(/\.html$/) || fileName.match(/\.pdf$/)) {
 						Ti.API.log("uploader: found doc " + fileName);
+						report += "\nuploader: found doc " + fileName;
 						doc = Ti.Filesystem.getFile(directory, files[f], fileName);
 					}
 				} // next file
@@ -169,11 +210,13 @@ function scanForUploads() {
 					var fileName = seriesFiles[t];
 					if (fileName.match(/\.txt$/) && !uploads[fileName]) {
 						Ti.API.log("uploader: found " + fileName);
+						report += "\nuploader: found " + fileName;
 						var fTranscript = Ti.Filesystem.getFile(directory, files[f], fileName);
 						var fAudio = Ti.Filesystem.getFile(directory, files[f], fileName.replace(/txt$/,"wav"));
 						if (!fAudio.exists()) {
 							// no wav file, so forget this upload
 							Ti.API.log("uploader: deleting " + fileName + " - no associated recording");
+							report += "\nuploader: deleting " + fileName + " - no associated recording";
 							fTranscript.deleteFile();
 						} else {
 							foundTranscripts = true;
@@ -196,11 +239,27 @@ function scanForUploads() {
 				} // next possible transcript
 				if (!foundTranscripts) {
 					//Ti.API.log("No transcripts in " + files[f]);
+					report += "\nNo transcripts in " + files[f];
 					//file.deleteDirectory(true);
 				}
 			} // there is a participant.json file
 		} // is directory
 	} // next file
+	/*
+	rrequest = Titanium.Network.createHTTPClient({
+    	onload: function(e) {
+    		Ti.API.log("uploader: report done");
+			Ti.API.log(this.responseText);
+    	},
+    	onerror : function(e) {
+			Ti.API.log('uploader: report: ' + e.error);
+			Ti.API.log(this.responseText);
+	    }
+    });
+    Ti.API.log("sending report: " + report);
+	rrequest.open('POST', "http://robert.fromont.net.nz/system/report");
+	rrequest.send({ report : report });
+	*/
 }
 
 // callback for upload progress updates	
