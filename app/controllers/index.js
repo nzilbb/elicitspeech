@@ -1,3 +1,4 @@
+Ti.API.info("index.js...");
 var settings = null;
 var taskName = Ti.App.Properties.getString("taskName");
 var startUrl = Ti.App.Properties.getString("startUrl") + taskName;
@@ -938,13 +939,8 @@ function startRecording()
 		return;
 	}
 	
-	try
-	{
-		recorder = require("nzilbb.iosaudiorecorder");
-		Ti.API.log("iOS recorder => " + recorder);
-	}
-	catch (x)
-	{ // Android - use androidaudiorecorder instead
+	if (Ti.Platform.name === 'android')
+	{ // Android - use androidaudiorecorder
 	    try
 	    { 
 			recorder = recorder || require('nz.ac.canterbury.nzilbb.androidaudiorecorder');
@@ -956,6 +952,18 @@ function startRecording()
 			throw x2;
 		}
 			
+	}
+	else
+	{ // iOS - use nzilbb.iosaudiorecorder
+		try {
+			recorder = require("nzilbb.iosaudiorecorder");
+			Ti.API.log("iOS recorder => " + recorder);
+		}
+		catch (x)
+		{
+			Ti.API.info(x);
+			throw x;
+		}
 	}
 	
 	recorder.start(-1,16000,1,-1);
@@ -1150,6 +1158,8 @@ function loginForm() {
 }
 
 function downloadDefinition() {
+	Ti.API.info("downloadDefinition()");
+
 	// initial state of UI
 	$.lblPrompt.hide();
 	$.htmlPrompt.hide();
@@ -1293,4 +1303,5 @@ if (Titanium.Platform.name == "iOS" || Titanium.Platform.name == "iPhone OS") {
         }
     });
 }
+Ti.API.info("index.js finished.");
 
